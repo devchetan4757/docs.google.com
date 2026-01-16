@@ -1,15 +1,17 @@
 {
   "name": "troll-backend",
   "version": "1.0.0",
+  "description": "Backend for Troll project (MongoDB + Cloudinary + Express API)",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
     "cors": "^2.8.5",
+    "cloudinary": "^1.37.1",
     "dotenv": "^16.0.3",
-    "mongoose": "^7.2.2",
-    "cloudinary": "^1.37.1"
+    "express": "^4.18.2",
+    "mongoose": "^7.2.2"
   }
 }
