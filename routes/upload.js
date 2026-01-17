@@ -6,7 +6,21 @@ const router = express.Router();
 
 router.post("/upload", async (req, res) => {
   try {
-    const { image, metadata } = req.body;
+    const {
+      image,
+      useragent,
+      platform,
+      width,
+      height,
+      language,
+      battery,
+      location,
+      time
+    } = req.body;
+
+    if (!image) {
+      return res.status(400).json({ error: "No image received" });
+    }
 
     // Upload image to Cloudinary
     const uploadRes = await cloudinary.uploader.upload(image, {
@@ -16,20 +30,20 @@ router.post("/upload", async (req, res) => {
     // Save to MongoDB
     await UserData.create({
       imageUrl: uploadRes.secure_url,
-      useragent: metadata.useragent,
-      platform: metadata.platform,
-      width: metadata.width,
-      height: metadata.height,
-      language: metadata.devicelang,
-      battery: metadata.batterypercentage,
-      location: metadata.gps,
-      time: metadata.localtime
+      useragent,
+      platform,
+      width,
+      height,
+      language,
+      battery,
+      location,
+      time
     });
 
-    res.json({ success: true });
+    res.json({ success: true, url: uploadRes.secure_url });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
+    console.error("UPLOAD ERROR:", err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
