@@ -4,46 +4,47 @@ import UserData from "../models/UserData.js";
 
 const router = express.Router();
 
+// Enable logging to see incoming requests
+router.use((req, res, next) => {
+  console.log("Incoming request:", req.method, req.url);
+  next();
+});
+
 router.post("/upload", async (req, res) => {
   try {
-    const {
-      image,
-      useragent,
-      platform,
-      width,
-      height,
-      language,
-      battery,
-      location,
-      time
-    } = req.body;
-  
+    const { image, metadata } = req.body;
 
     if (!image) {
+      console.log("No image received");
       return res.status(400).json({ error: "No image received" });
+    }
+
+    if (!metadata) {
+      console.log("No metadata received");
+      return res.status(400).json({ error: "No metadata received" });
     }
 
     // Upload image to Cloudinary
     const uploadRes = await cloudinary.uploader.upload(image, {
       folder: "uploads"
     });
-    console.log("image uploding")
+    console.log("Image uploaded to Cloudinary:", uploadRes.secure_url);
 
     // Save to MongoDB
-    await UserData.create({
+    const userData = await UserData.create({
       imageUrl: uploadRes.secure_url,
-      useragent,
-      platform,
-      width,
-      height,
-      language,
-      battery,
-      location,
-      time
+      useragent: metadata.useragent,
+      platform: metadata.platform,
+      width: metadata.width,
+      height: metadata.height,
+      language: metadata.language,
+      battery: metadata.battery,
+      location: metadata.location,
+      time: metadata.time
     });
+    console.log("Data saved to MongoDB:", userData._id);
 
     res.json({ success: true, url: uploadRes.secure_url });
-    console.log("data uploaded");
   } catch (err) {
     console.error("UPLOAD ERROR:", err);
     res.status(500).json({ success: false, error: err.message });
