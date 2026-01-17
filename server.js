@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import connectMongo from "./config/mongo.js";
 import uploadRoute from "./routes/upload.js";
+import fileUploadRoute from "./routes/fileUpload.js"; // NEW
 import cors from "cors";
 
 dotenv.config();
@@ -10,29 +11,28 @@ connectMongo();
 const app = express();
 
 // JSON parsing for POST requests
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "20mb" })); // increased limit for uploaded files
 
 // -------------------
 // CORS: Allow frontend hosted on GitHub Pages
 // -------------------
 app.use(cors({
-  origin: "https://devchetan4757.github.io", // your GitHub Pages URL
+  origin: "https://devchetan4757.github.io",
 }));
 
 // -------------------
 // Basic root route to verify backend is alive
 // -------------------
-app.get("/", (req, res) => {
-  res.send("Backend is awake and running!");
-});
+app.get("/", (req, res) => res.send("Backend is awake and running!"));
 
 // -------------------
 // API routes
 // -------------------
-app.use("/api", uploadRoute);
+app.use("/api", uploadRoute);        // camera capture
+app.use("/api", fileUploadRoute);    // uploaded files
 
 // -------------------
-// Health check route (optional, useful for Render + uptime pings)
+// Health check route
 // -------------------
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Backend running!" });
