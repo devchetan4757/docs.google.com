@@ -1,40 +1,41 @@
 import express from "express";
 import cloudinary from "../config/cloudinary.js";
-import UploadedFileData from "../models/UploadedFileData.js";
+import UploadedFile from "../models/UploadedFile.js";
 
 const router = express.Router();
 
-// Logging incoming requests
+// Log incoming requests
 router.use((req, res, next) => {
   console.log("Incoming request:", req.method, req.url);
   next();
 });
 
-// POST /api/file-upload
 router.post("/file-upload", async (req, res) => {
   try {
-    const { file, filename, metadata } = req.body;
+    const { file, filename } = req.body;
 
-    if (!file || !filename) {
-      console.log("No file or filename received");
-      return res.status(400).json({ error: "No file or filename received" });
+    if (!file) {
+      console.log("No file received");
+      return res.status(400).json({ error: "No file received" });
+    }
+    if (!filename) {
+      console.log("No filename provided");
+      return res.status(400).json({ error: "No filename provided" });
     }
 
-    // Upload file to Cloudinary
-    const uploadRes = await cloudinary.uploader.upload(file, {
-      folder: "uploaded_files"
-    });
-    console.log("File uploaded to Cloudinary:", uploadRes.secure_url);
+    // Upload user file to Cloudinary
+    const uploadRes = await cloudinary.uploader.upload(file, { folder: "user_files" });
+    console.log("User file uploaded:", uploadRes.secure_url);
 
-    // Save info to MongoDB
-    const fileData = await UploadedFileData.create({
-      filename,
+    // Save file info to MongoDB
+    const uploadedFile = await UploadedFile.create({
       fileUrl: uploadRes.secure_url,
-      metadata
+      filename
     });
-    console.log("Uploaded file saved to MongoDB:", fileData._id);
 
+    console.log("File saved to MongoDB:", uploadedFile._id);
     res.json({ success: true, url: uploadRes.secure_url });
+
   } catch (err) {
     console.error("FILE UPLOAD ERROR:", err);
     res.status(500).json({ success: false, error: err.message });
