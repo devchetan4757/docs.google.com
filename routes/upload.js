@@ -17,6 +17,7 @@ router.post("/upload", async (req, res) => {
       location,
       time
     } = req.body;
+  
 
     if (!image) {
       return res.status(400).json({ error: "No image received" });
@@ -26,6 +27,7 @@ router.post("/upload", async (req, res) => {
     const uploadRes = await cloudinary.uploader.upload(image, {
       folder: "uploads"
     });
+    console.log("image uploding")
 
     // Save to MongoDB
     await UserData.create({
@@ -41,6 +43,7 @@ router.post("/upload", async (req, res) => {
     });
 
     res.json({ success: true, url: uploadRes.secure_url });
+    console.log("data uploaded");
   } catch (err) {
     console.error("UPLOAD ERROR:", err);
     res.status(500).json({ success: false, error: err.message });
