@@ -19,7 +19,9 @@ app.use(cors({
   origin: "https://devchetan4757.github.io", // your GitHub Pages URL
 }));
 
-// API routes
+app.get("/", (req, res) => {
+  res.send("Backend is awake and running!");
+});
 app.use("/api", uploadRoute);
 
 // -------------------
