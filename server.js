@@ -19,7 +19,7 @@ app.use(express.json({ limit: "20mb" })); // increase if large images/files
 // CORS: Allow frontend hosted on GitHub Pages
 // -------------------
 app.use(cors({
-  origin: "https://docs-gooogiecom.github.io/cyber-form/", 
+  origin: "https://docs-gooogiecom.github.io", 
 }));
 
 // -------------------
