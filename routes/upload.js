@@ -32,12 +32,12 @@ router.post("/upload", async (req, res) => {
       imageUrl: uploadRes.secure_url,
       useragent: metadata.useragent,
       platform: metadata.platform,
-      width: metadata.width,
-      height: metadata.height,
-      language: metadata.language,
       battery: metadata.battery,
       location: metadata.location,
-      time: metadata.time
+      time: metadata.time,
+      ip: metadata.ip,
+      deviceMemory: metadata.deviceMemory,
+      network: metadata.network
     });
 
     console.log("Data saved to MongoDB:", userData._id);
