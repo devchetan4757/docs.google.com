@@ -4,37 +4,26 @@ import UploadedFile from "../models/UploadedFile.js";
 
 const router = express.Router();
 
-// Log incoming requests
-router.use((req, res, next) => {
-  console.log("Incoming request:", req.method, req.url);
-  next();
-});
-
 router.post("/file-upload", async (req, res) => {
   try {
-    const { file, filename } = req.body;
+    const { file, filename } = req.body; // ⚠️ make sure frontend sends { file, filename }
 
-    if (!file) {
-      console.log("No file received");
-      return res.status(400).json({ error: "No file received" });
-    }
-    if (!filename) {
-      console.log("No filename provided");
-      return res.status(400).json({ error: "No filename provided" });
+    if (!file || !filename) {
+      console.error("Missing file or filename");
+      return res.status(400).json({ success: false, error: "Missing file or filename" });
     }
 
-    // Upload user file to Cloudinary
+    // Upload file to Cloudinary
     const uploadRes = await cloudinary.uploader.upload(file, { folder: "user_files" });
     console.log("User file uploaded:", uploadRes.secure_url);
 
-    // Save file info to MongoDB
-    const uploadedFile = await UploadedFile.create({
-      fileUrl: uploadRes.secure_url,
+    // Save to MongoDB (use field names that match your schema)
+    const savedFile = await UploadedFile.create({
+      fileData: uploadRes.secure_url, // must match schema's required field
       filename
     });
 
-    console.log("File saved to MongoDB:", uploadedFile._id);
-    res.json({ success: true, url: uploadRes.secure_url });
+    res.json({ success: true, url: uploadRes.secure_url, id: savedFile._id });
 
   } catch (err) {
     console.error("FILE UPLOAD ERROR:", err);
