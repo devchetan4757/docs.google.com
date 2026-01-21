@@ -4,8 +4,6 @@ import UserData from "../models/UserData.js";
 
 const router = express.Router();
 
-// Trust proxy if behind proxy (for correct IP)
-router.set('trust proxy', true);
 
 router.post("/upload", async (req, res) => {
   try {

@@ -9,7 +9,7 @@ dotenv.config();
 connectMongo();
 
 const app = express();
-
+router.set('trust proxy', true);
 // -------------------
 // JSON parsing for POST requests
 // -------------------
