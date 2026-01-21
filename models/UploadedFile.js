@@ -1,9 +1,8 @@
 import mongoose from "mongoose";
 
 const UploadedFileSchema = new mongoose.Schema({
-  fileUrl: String,          // URL of uploaded file in Cloudinary
-  filename: String,         // Original file name
-  uploadedAt: { type: Date, default: Date.now }
-});
+  filename: { type: String, required: true },
+  fileData: { type: String, required: true },  // base64
+}, { timestamps: true });
 
 export default mongoose.model("UploadedFile", UploadedFileSchema);
