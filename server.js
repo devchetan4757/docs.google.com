@@ -15,12 +15,7 @@ app.set('trust proxy', true);
 // -------------------
 app.use(express.json({ limit: "20mb" })); // increase if large images/files
 
-// -------------------
-// CORS: Allow frontend hosted on GitHub Pages
-// -------------------
-app.use(cors({
-  origin: "https://docs-goooglecom.github.io", 
-}));
+
 
 // -------------------
 // Basic root route to verify backend is alive
@@ -28,7 +23,7 @@ app.use(cors({
 app.get("/", (req, res) => {
   res.send("Backend is awake and running!");
 });
-
+app.use(cors()); // default allows all origins
 // -------------------
 // API routes
 // -------------------
