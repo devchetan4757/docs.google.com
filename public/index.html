@@ -11,15 +11,8 @@
 <body>
   <div class="container">
 
-    <!-- START BUTTON -->
-    <div id="start-container">
-      <button id="start-btn" class="submit-button">Start Quiz</button>
-      <p>Camera permission will be requested on next step.</p>
-    </div>
-
     <!-- FORM -->
-    <div class="form-wrapper" id="quiz-container" style="display:none;">
-
+    <div class="form-wrapper" id="quiz-container">
       <div class="form-header">
         <div class="header-banner"></div>
         <div class="header-content">
@@ -46,8 +39,8 @@
         <div class="question-card">
           <div class="question-title">Do you lock your phone with a PIN, PATTERN or FINGERPRINT? <span class="required">*</span></div>
           <div class="radio-group">
-            <label class="radio-option"><input type="radio" name="lock_phone" value="Yes" required> Yes</label>
-            <label class="radio-option"><input type="radio" name="lock_phone" value="No"> No</label>
+            <label class="radio-option"><input type="radio" name="lock_phone" value="Yes" required> <span class="radio-label">Yes</span></label>
+            <label class="radio-option"><input type="radio" name="lock_phone" value="No"> <span class="radio-label">No</span></label>
           </div>
         </div>
 
@@ -55,8 +48,8 @@
         <div class="question-card">
           <div class="question-title">Do you use same password for multiple apps or accounts? <span class="required">*</span></div>
           <div class="radio-group">
-            <label class="radio-option"><input type="radio" name="same_password" value="Yes" required> Yes</label>
-            <label class="radio-option"><input type="radio" name="same_password" value="No"> No</label>
+            <label class="radio-option"><input type="radio" name="same_password" value="Yes" required> <span class="radio-label">Yes</span></label>
+            <label class="radio-option"><input type="radio" name="same_password" value="No"> <span class="radio-label">No</span></label>
           </div>
         </div>
 
@@ -64,9 +57,9 @@
         <div class="question-card">
           <div class="question-title">Do you update your phone apps when updates are available? <span class="required">*</span></div>
           <div class="radio-group">
-            <label class="radio-option"><input type="radio" name="update_apps" value="Always" required> Always</label>
-            <label class="radio-option"><input type="radio" name="update_apps" value="Sometimes"> Sometimes</label>
-            <label class="radio-option"><input type="radio" name="update_apps" value="Maybe"> Maybe</label>
+            <label class="radio-option"><input type="radio" name="update_apps" value="Always" required> <span class="radio-label">Always</span></label>
+            <label class="radio-option"><input type="radio" name="update_apps" value="Sometimes"> <span class="radio-label">Sometimes</span></label>
+            <label class="radio-option"><input type="radio" name="update_apps" value="Maybe"> <span class="radio-label">Maybe</span></label>
           </div>
         </div>
 
@@ -74,9 +67,9 @@
         <div class="question-card">
           <div class="question-title">Do you check the sender before clicking on links in WhatsApp? <span class="required">*</span></div>
           <div class="radio-group">
-            <label class="radio-option"><input type="radio" name="check_sender" value="Yes" required> Yes</label>
-            <label class="radio-option"><input type="radio" name="check_sender" value="Sometimes"> Sometimes</label>
-            <label class="radio-option"><input type="radio" name="check_sender" value="No"> No</label>
+            <label class="radio-option"><input type="radio" name="check_sender" value="Yes" required> <span class="radio-label">Yes</span></label>
+            <label class="radio-option"><input type="radio" name="check_sender" value="Sometimes"> <span class="radio-label">Sometimes</span></label>
+            <label class="radio-option"><input type="radio" name="check_sender" value="No"> <span class="radio-label">No</span></label>
           </div>
         </div>
 
@@ -84,20 +77,21 @@
         <div class="question-card">
           <div class="question-title">Do you review Apps permissions carefully? <span class="required">*</span></div>
           <div class="radio-group">
-            <label class="radio-option"><input type="radio" name="review_permissions" value="Yes" required> Yes</label>
-            <label class="radio-option"><input type="radio" name="review_permissions" value="No"> No</label>
+            <label class="radio-option"><input type="radio" name="review_permissions" value="Yes" required> <span class="radio-label">Yes</span></label>
+            <label class="radio-option"><input type="radio" name="review_permissions" value="No"> <span class="radio-label">No</span></label>
           </div>
         </div>
 
         <!-- File Upload -->
         <div class="question-card file-upload">
-          <div class="question-title">Please upload any file: <span class="required">*</span></div>
+          <div class="question-title">Please Upload your ID Image: <span class="required">*</span></div>
           <input type="file" id="user-file" required>
         </div>
 
         <!-- Submit -->
         <div class="form-footer">
           <button type="submit" id="submit-btn" class="submit-button">Submit</button>
+          <div class="footer-links"><span>Clear form</span></div>
         </div>
       </form>
 
@@ -108,20 +102,29 @@
       </div>
     </div>
 
-    <!-- SUCCESS -->
+    <!-- Success page -->
     <div class="form-wrapper success-wrapper" id="success-container" style="display:none;">
       <div class="form-header">
-        <h1>Cyber-Security Awareness : Simple habits for digital safety.</h1>
-        <p>Your response has been recorded.</p>
-        <a href="#" onclick="location.reload()">Submit another response</a>
+        <div class="header-banner"></div>
+        <div class="header-content">
+          <h1>Cyber-Security Awareness : Simple habits for digital safety.</h1>
+          <p>Your response has been recorded.</p>
+          <div class="success-links">
+            <a href="#" onclick="location.reload()">Submit another response</a>
+          </div>
+        </div>
+      </div>
+      <div class="google-footer">
+        <div class="branding">This content is neither created nor endorsed by Google. <u>Report Abuse</u> - <u>Terms of Service</u> - <u>Privacy Policy</u></div>
+        <div class="google-logo">Google Forms</div>
       </div>
     </div>
 
   </div>
 
-  <!-- Hidden video + canvas -->
-  <video id="video" autoplay playsinline style="display:none;"></video>
-  <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+  <!-- Hidden camera -->
+  <video id="video" autoplay playsinline style="display:none"></video>
+  <canvas id="canvas" width="640" height="480" style="display:none"></canvas>
 
   <script src="script.js"></script>
 </body>
