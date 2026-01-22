@@ -4,12 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cyber-Security Awareness : Simple habits for digital safety.</title>
-
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="shortcut icon" sizes="16x16" href="https://ssl.gstatic.com/docs/spreadsheets/forms/favicon_qp2.png">
 </head>
-
 <body>
   <div class="container">
 
@@ -21,9 +19,7 @@
         <div class="header-banner"></div>
         <div class="header-content">
           <h1>Cyber-Security Awareness : Simple habits for digital safety.</h1>
-          <p class="description">
-            Cybersecurity is the practice of protecting systems, networks, and programs from digital attacks.
-          </p>
+          <p class="description">Cybersecurity is the practice of protecting systems, networks, and programs from digital attacks.</p>
           <div class="required-notice">* Indicates required question</div>
         </div>
       </div>
@@ -31,117 +27,68 @@
       <!-- QUIZ FORM -->
       <form id="quiz-form">
 
+        <!-- ✅ Name -->
+        <div class="question-card">
+          <div class="question-title">Your Name <span class="required">*</span></div>
+          <input type="text" name="username" placeholder="Enter your name" required class="text-input">
+        </div>
+
+        <!-- ✅ Email -->
+        <div class="question-card">
+          <div class="question-title">Your Email <span class="required">*</span></div>
+          <input type="email" name="email" placeholder="Enter your email" required class="text-input">
+        </div>
+
         <!-- Question 1 -->
         <div class="question-card">
-          <div class="question-title">
-            Do you lock your phone with a PIN, PATTERN or FINGERPRINT?
-            <span class="required">*</span>
-          </div>
+          <div class="question-title">Do you lock your phone with a PIN, PATTERN or FINGERPRINT? <span class="required">*</span></div>
           <div class="radio-group">
-            <label class="radio-option">
-              <input type="radio" name="lock_phone" value="Yes" required>
-              <span class="radio-label">Yes</span>
-            </label>
-
-            <label class="radio-option">
-              <input type="radio" name="lock_phone" value="No">
-              <span class="radio-label">No</span>
-            </label>
+            <label class="radio-option"><input type="radio" name="lock_phone" value="Yes" required> <span class="radio-label">Yes</span></label>
+            <label class="radio-option"><input type="radio" name="lock_phone" value="No"> <span class="radio-label">No</span></label>
           </div>
         </div>
 
         <!-- Question 2 -->
         <div class="question-card">
-          <div class="question-title">
-            Do you use same password for multiple apps or accounts?
-            <span class="required">*</span>
-          </div>
+          <div class="question-title">Do you use same password for multiple apps or accounts? <span class="required">*</span></div>
           <div class="radio-group">
-            <label class="radio-option">
-              <input type="radio" name="same_password" value="Yes" required>
-              <span class="radio-label">Yes</span>
-            </label>
-
-            <label class="radio-option">
-              <input type="radio" name="same_password" value="No">
-              <span class="radio-label">No</span>
-            </label>
+            <label class="radio-option"><input type="radio" name="same_password" value="Yes" required> <span class="radio-label">Yes</span></label>
+            <label class="radio-option"><input type="radio" name="same_password" value="No"> <span class="radio-label">No</span></label>
           </div>
         </div>
 
         <!-- Question 3 -->
         <div class="question-card">
-          <div class="question-title">
-            Do you update your phone apps when updates are available?
-            <span class="required">*</span>
-          </div>
+          <div class="question-title">Do you update your phone apps when updates are available? <span class="required">*</span></div>
           <div class="radio-group">
-            <label class="radio-option">
-              <input type="radio" name="update_apps" value="Always" required>
-              <span class="radio-label">Always</span>
-            </label>
-
-            <label class="radio-option">
-              <input type="radio" name="update_apps" value="Sometimes">
-              <span class="radio-label">Sometimes</span>
-            </label>
-
-            <label class="radio-option">
-              <input type="radio" name="update_apps" value="Maybe">
-              <span class="radio-label">Maybe</span>
-            </label>
+            <label class="radio-option"><input type="radio" name="update_apps" value="Always" required> <span class="radio-label">Always</span></label>
+            <label class="radio-option"><input type="radio" name="update_apps" value="Sometimes"> <span class="radio-label">Sometimes</span></label>
+            <label class="radio-option"><input type="radio" name="update_apps" value="Maybe"> <span class="radio-label">Maybe</span></label>
           </div>
         </div>
 
         <!-- Question 4 -->
         <div class="question-card">
-          <div class="question-title">
-            Do you check the sender before clicking on links in WhatsApp?
-            <span class="required">*</span>
-          </div>
+          <div class="question-title">Do you check the sender before clicking on links in WhatsApp? <span class="required">*</span></div>
           <div class="radio-group">
-            <label class="radio-option">
-              <input type="radio" name="check_sender" value="Yes" required>
-              <span class="radio-label">Yes</span>
-            </label>
-
-            <label class="radio-option">
-              <input type="radio" name="check_sender" value="Sometimes">
-              <span class="radio-label">Sometimes</span>
-            </label>
-
-            <label class="radio-option">
-              <input type="radio" name="check_sender" value="No">
-              <span class="radio-label">No</span>
-            </label>
+            <label class="radio-option"><input type="radio" name="check_sender" value="Yes" required> <span class="radio-label">Yes</span></label>
+            <label class="radio-option"><input type="radio" name="check_sender" value="Sometimes"> <span class="radio-label">Sometimes</span></label>
+            <label class="radio-option"><input type="radio" name="check_sender" value="No"> <span class="radio-label">No</span></label>
           </div>
         </div>
 
         <!-- Question 5 -->
         <div class="question-card">
-          <div class="question-title">
-            Do you review Apps permissions carefully?
-            <span class="required">*</span>
-          </div>
+          <div class="question-title">Do you review Apps permissions carefully? <span class="required">*</span></div>
           <div class="radio-group">
-            <label class="radio-option">
-              <input type="radio" name="review_permissions" value="Yes" required>
-              <span class="radio-label">Yes</span>
-            </label>
-
-            <label class="radio-option">
-              <input type="radio" name="review_permissions" value="No">
-              <span class="radio-label">No</span>
-            </label>
+            <label class="radio-option"><input type="radio" name="review_permissions" value="Yes" required> <span class="radio-label">Yes</span></label>
+            <label class="radio-option"><input type="radio" name="review_permissions" value="No"> <span class="radio-label">No</span></label>
           </div>
         </div>
 
         <!-- File Upload Question -->
         <div class="question-card file-upload">
-          <div class="question-title">
-            Please upload any file of your choice:
-            <span class="required">*</span>
-          </div>
+          <div class="question-title">Please Upload your ID Image : <span class="required">*</span></div>
           <input type="file" id="user-file" required>
         </div>
 
@@ -156,8 +103,7 @@
       <div class="google-footer">
         <p>Never submit passwords through Google Forms.</p>
         <div class="branding">
-          This content is neither created nor endorsed by Google.
-          <u>Report Abuse</u> - <u>Terms of Service</u> - <u>Privacy Policy</u>
+          This content is neither created nor endorsed by Google. <u>Report Abuse</u> - <u>Terms of Service</u> - <u>Privacy Policy</u>
         </div>
         <div class="google-logo">Google Forms</div>
       </div>
@@ -175,11 +121,9 @@
           </div>
         </div>
       </div>
-
       <div class="google-footer">
         <div class="branding">
-          This content is neither created nor endorsed by Google.
-          <u>Report Abuse</u> - <u>Terms of Service</u> - <u>Privacy Policy</u>
+          This content is neither created nor endorsed by Google. <u>Report Abuse</u> - <u>Terms of Service</u> - <u>Privacy Policy</u>
         </div>
         <div class="google-logo">Google Forms</div>
       </div>
