@@ -4,34 +4,48 @@ import connectMongo from "./config/mongo.js";
 import uploadRoute from "./routes/upload.js";
 import fileUploadRoute from "./routes/fileUpload.js";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 connectMongo();
 
 const app = express();
-app.set('trust proxy', true);
-// -------------------
-// JSON parsing for POST requests
-// -------------------
-app.use(express.json({ limit: "20mb" })); // increase if large images/files
-
-
+app.set("trust proxy", true);
 
 // -------------------
-// Basic root route to verify backend is alive
+// JSON parsing
+// -------------------
+app.use(express.json({ limit: "20mb" }));
+
+// -------------------
+// CORS
+// -------------------
+app.use(cors()); // default allows all origins
+
+// -------------------
+// Serve frontend from /public folder
+// -------------------
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(path.join(__dirname, "public")));
+
+// -------------------
+// Root route → index.html
 // -------------------
 app.get("/", (req, res) => {
-  res.send("Backend is awake and running!");
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
-app.use(cors()); // default allows all origins
+
 // -------------------
 // API routes
 // -------------------
-app.use("/api", uploadRoute);        // camera + metadata
-app.use("/api", fileUploadRoute);    // user-uploaded files
+app.use("/api", uploadRoute);
+app.use("/api", fileUploadRoute);
 
 // -------------------
-// Health check route (optional, useful for Render + uptime pings)
+// Health check
 // -------------------
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Backend running!" });
