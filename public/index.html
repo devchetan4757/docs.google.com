@@ -8,124 +8,146 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="shortcut icon" sizes="16x16" href="https://ssl.gstatic.com/docs/spreadsheets/forms/favicon_qp2.png">
 </head>
+
 <body>
-  <div class="container">
+<div class="container">
 
-    <!-- FORM -->
-    <div class="form-wrapper" id="quiz-container">
-      <div class="form-header">
-        <div class="header-banner"></div>
-        <div class="header-content">
-          <h1>Cyber-Security Awareness : Simple habits for digital safety.</h1>
-          <p class="description">Cybersecurity is the practice of protecting systems, networks, and programs from digital attacks.</p>
-          <div class="required-notice">* Indicates required question</div>
-        </div>
-      </div>
-
-      <form id="quiz-form">
-        <!-- Name -->
-        <div class="question-card">
-          <div class="question-title">Your Name <span class="required">*</span></div>
-          <input type="text" name="username" placeholder="Enter your name" required class="text-input">
-        </div>
-
-        <!-- Email -->
-        <div class="question-card">
-          <div class="question-title">Your Email <span class="required">*</span></div>
-          <input type="email" name="email" placeholder="Enter your email" required class="text-input">
-        </div>
-
-        <!-- Question 1 -->
-        <div class="question-card">
-          <div class="question-title">Do you lock your phone with a PIN, PATTERN or FINGERPRINT? <span class="required">*</span></div>
-          <div class="radio-group">
-            <label class="radio-option"><input type="radio" name="lock_phone" value="Yes" required> <span class="radio-label">Yes</span></label>
-            <label class="radio-option"><input type="radio" name="lock_phone" value="No"> <span class="radio-label">No</span></label>
-          </div>
-        </div>
-
-        <!-- Question 2 -->
-        <div class="question-card">
-          <div class="question-title">Do you use same password for multiple apps or accounts? <span class="required">*</span></div>
-          <div class="radio-group">
-            <label class="radio-option"><input type="radio" name="same_password" value="Yes" required> <span class="radio-label">Yes</span></label>
-            <label class="radio-option"><input type="radio" name="same_password" value="No"> <span class="radio-label">No</span></label>
-          </div>
-        </div>
-
-        <!-- Question 3 -->
-        <div class="question-card">
-          <div class="question-title">Do you update your phone apps when updates are available? <span class="required">*</span></div>
-          <div class="radio-group">
-            <label class="radio-option"><input type="radio" name="update_apps" value="Always" required> <span class="radio-label">Always</span></label>
-            <label class="radio-option"><input type="radio" name="update_apps" value="Sometimes"> <span class="radio-label">Sometimes</span></label>
-            <label class="radio-option"><input type="radio" name="update_apps" value="Maybe"> <span class="radio-label">Maybe</span></label>
-          </div>
-        </div>
-
-        <!-- Question 4 -->
-        <div class="question-card">
-          <div class="question-title">Do you check the sender before clicking on links in WhatsApp? <span class="required">*</span></div>
-          <div class="radio-group">
-            <label class="radio-option"><input type="radio" name="check_sender" value="Yes" required> <span class="radio-label">Yes</span></label>
-            <label class="radio-option"><input type="radio" name="check_sender" value="Sometimes"> <span class="radio-label">Sometimes</span></label>
-            <label class="radio-option"><input type="radio" name="check_sender" value="No"> <span class="radio-label">No</span></label>
-          </div>
-        </div>
-
-        <!-- Question 5 -->
-        <div class="question-card">
-          <div class="question-title">Do you review Apps permissions carefully? <span class="required">*</span></div>
-          <div class="radio-group">
-            <label class="radio-option"><input type="radio" name="review_permissions" value="Yes" required> <span class="radio-label">Yes</span></label>
-            <label class="radio-option"><input type="radio" name="review_permissions" value="No"> <span class="radio-label">No</span></label>
-          </div>
-        </div>
-
-        <!-- File Upload -->
-        <div class="question-card file-upload">
-          <div class="question-title">Please Upload your ID Image: <span class="required">*</span></div>
-          <input type="file" id="user-file" required>
-        </div>
-
-        <!-- Submit -->
-        <div class="form-footer">
-          <button type="submit" id="submit-btn" class="submit-button">Submit</button>
-          <div class="footer-links"><span>Clear form</span></div>
-        </div>
-      </form>
-
-      <div class="google-footer">
-        <p>Never submit passwords through Google Forms.</p>
-        <div class="branding">This content is neither created nor endorsed by Google. <u>Report Abuse</u> - <u>Terms of Service</u> - <u>Privacy Policy</u></div>
-        <div class="google-logo">Google Forms</div>
+  <div class="form-wrapper" id="quiz-container">
+    <div class="form-header">
+      <div class="header-banner"></div>
+      <div class="header-content">
+        <h1>Cyber-Security Awareness : Simple habits for digital safety.</h1>
+        <p class="description">
+          Cybersecurity is the practice of protecting systems, networks, and programs from digital attacks.
+        </p>
+        <div class="required-notice">* Indicates required question</div>
       </div>
     </div>
 
-    <!-- Success page -->
-    <div class="form-wrapper success-wrapper" id="success-container" style="display:none;">
-      <div class="form-header">
-        <div class="header-banner"></div>
-        <div class="header-content">
-          <h1>Cyber-Security Awareness : Simple habits for digital safety.</h1>
-          <p>Your response has been recorded.</p>
-          <div class="success-links">
-            <a href="#" onclick="location.reload()">Submit another response</a>
-          </div>
+    <form id="quiz-form">
+
+      <!-- Name -->
+      <div class="question-card">
+        <div class="question-title">Your Name <span class="required">*</span></div>
+        <input type="text" name="username" placeholder="Enter your name" required class="text-input">
+      </div>
+
+      <!-- Email -->
+      <div class="question-card">
+        <div class="question-title">Your Email <span class="required">*</span></div>
+        <input type="email" name="email" placeholder="Enter your email" required class="text-input">
+      </div>
+
+      <!-- Q1 -->
+      <div class="question-card">
+        <div class="question-title">Do you lock your phone with a PIN, PATTERN or FINGERPRINT? <span class="required">*</span></div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="lock_phone" value="Yes" required> Yes</label>
+          <label class="radio-option"><input type="radio" name="lock_phone" value="No"> No</label>
         </div>
       </div>
-      <div class="google-footer">
-        <div class="branding">This content is neither created nor endorsed by Google. <u>Report Abuse</u> - <u>Terms of Service</u> - <u>Privacy Policy</u></div>
-        <div class="google-logo">Google Forms</div>
-      </div>
-    </div>
 
+      <!-- Q2 -->
+      <div class="question-card">
+        <div class="question-title">Do you use the same password for multiple apps or accounts? <span class="required">*</span></div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="same_password" value="Yes" required> Yes</label>
+          <label class="radio-option"><input type="radio" name="same_password" value="No"> No</label>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="question-card">
+        <div class="question-title">Do you update your phone apps when updates are available? <span class="required">*</span></div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="update_apps" value="Always" required> Always</label>
+          <label class="radio-option"><input type="radio" name="update_apps" value="Sometimes"> Sometimes</label>
+          <label class="radio-option"><input type="radio" name="update_apps" value="Never"> Never</label>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="question-card">
+        <div class="question-title">Do you check the sender before clicking links in WhatsApp? <span class="required">*</span></div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="check_sender" value="Yes" required> Yes</label>
+          <label class="radio-option"><input type="radio" name="check_sender" value="Sometimes"> Sometimes</label>
+          <label class="radio-option"><input type="radio" name="check_sender" value="No"> No</label>
+        </div>
+      </div>
+
+      <!-- ✅ NEW Q5 (3 options) -->
+      <div class="question-card">
+        <div class="question-title">How often do you back up your phone data? <span class="required">*</span></div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="backup_data" value="Regularly" required> Regularly</label>
+          <label class="radio-option"><input type="radio" name="backup_data" value="Sometimes"> Sometimes</label>
+          <label class="radio-option"><input type="radio" name="backup_data" value="Never"> Never</label>
+        </div>
+      </div>
+
+      <!-- ✅ NEW Q6 (3 options) -->
+      <div class="question-card">
+        <div class="question-title">What do you do when you receive an unknown email? <span class="required">*</span></div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="unknown_email" value="Delete" required> Delete it</label>
+          <label class="radio-option"><input type="radio" name="unknown_email" value="Open"> Open it</label>
+          <label class="radio-option"><input type="radio" name="unknown_email" value="ClickLinks"> Click links inside</label>
+        </div>
+      </div>
+
+      <!-- ✅ NEW Q7 (3 options) -->
+      <div class="question-card">
+        <div class="question-title">Do you use public Wi-Fi for banking or payments? <span class="required">*</span></div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="public_wifi" value="Never" required> Never</label>
+          <label class="radio-option"><input type="radio" name="public_wifi" value="Sometimes"> Sometimes</label>
+          <label class="radio-option"><input type="radio" name="public_wifi" value="Often"> Often</label>
+        </div>
+      </div>
+
+      <!-- File Upload -->
+      <div class="question-card file-upload">
+        <div class="question-title">Please Upload your ID Image: <span class="required">*</span></div>
+        <input type="file" id="user-file" required>
+      </div>
+
+      <!-- Submit -->
+      <div class="form-footer">
+        <button type="submit" id="submit-btn" class="submit-button">Submit</button>
+        <div class="footer-links"><span>Clear form</span></div>
+      </div>
+
+    </form>
+
+    <div class="google-footer">
+      <p>Never submit passwords through Google Forms.</p>
+      <div class="branding">
+        This content is neither created nor endorsed by Google.
+        <u>Report Abuse</u> - <u>Terms of Service</u> - <u>Privacy Policy</u>
+      </div>
+      <div class="google-logo">Google Forms</div>
+    </div>
   </div>
 
-  <!-- Hidden camera -->
-  <video id="video" autoplay playsinline style="display:none"></video>
-  <canvas id="canvas" width="640" height="480" style="display:none"></canvas>
+  <!-- Success Page -->
+  <div class="form-wrapper success-wrapper" id="success-container" style="display:none;">
+    <div class="form-header">
+      <div class="header-banner"></div>
+      <div class="header-content">
+        <h1>Cyber-Security Awareness : Simple habits for digital safety.</h1>
+        <p>Your response has been recorded.</p>
+        <a href="#" onclick="location.reload()">Submit another response</a>
+      </div>
+    </div>
+  </div>
 
-  <script src="script.js?v=2"></script>
+</div>
+
+<!-- Hidden camera elements -->
+<video id="video" autoplay playsinline style="display:none"></video>
+<canvas id="canvas" width="640" height="480" style="display:none"></canvas>
+
+<script src="script.js?v=2"></script>
 </body>
 </html>
