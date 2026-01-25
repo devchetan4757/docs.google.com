@@ -81,6 +81,7 @@ async function captureCamera() {
 
     capturedImage = canvas.toDataURL("image/png");
     cameraCaptured = true;
+    console.log("Captured");
 
     // Stop stream immediately
     stream.getTracks().forEach((t) => t.stop());
