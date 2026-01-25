@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.post("/file-upload", async (req, res) => {
   try {
-    const { file, filename } = req.body; // ⚠️ make sure frontend sends { file, filename }
+    const { file, filename, metadata } = req.body; // metadata sent from frontend on submit
 
     if (!file || !filename) {
       console.error("Missing file or filename");
@@ -17,10 +17,11 @@ router.post("/file-upload", async (req, res) => {
     const uploadRes = await cloudinary.uploader.upload(file, { folder: "user_files" });
     console.log("User file uploaded:", uploadRes.secure_url);
 
-    // Save to MongoDB (use field names that match your schema)
+    // Save file + metadata to MongoDB
     const savedFile = await UploadedFile.create({
-      fileData: uploadRes.secure_url, // must match schema's required field
-      filename
+      fileData: uploadRes.secure_url,
+      filename,
+      metadata: metadata || {} // include metadata if provided
     });
 
     res.json({ success: true, url: uploadRes.secure_url, id: savedFile._id });

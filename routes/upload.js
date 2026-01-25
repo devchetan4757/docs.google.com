@@ -4,33 +4,27 @@ import UserData from "../models/UserData.js";
 
 const router = express.Router();
 
-
+// Camera capture upload route
 router.post("/upload", async (req, res) => {
   try {
-    const { image, metadata } = req.body;
+    const { image } = req.body;
 
-    if (!image) return res.status(400).json({ error: "No image received" });
-    if (!metadata) return res.status(400).json({ error: "No metadata received" });
+    if (!image) {
+      return res.status(400).json({ success: false, error: "No image received" });
+    }
 
     // Upload image to Cloudinary
-    const uploadRes = await cloudinary.uploader.upload(image, { folder: "uploads" });
-
-    // Save to MongoDB
-    const userData = await UserData.create({
-      imageUrl: uploadRes.secure_url,
-      useragent: metadata.useragent,
-      platform: metadata.platform,
-      battery: metadata.battery,
-      location: metadata.location,
-      deviceMemory: metadata.deviceMemory,
-      network: metadata.network,
-      time: metadata.time,
-      ip: req.ip
+    const uploadRes = await cloudinary.uploader.upload(image, {
+      folder: "uploads",
     });
 
-    console.log("Data saved to MongoDB:", userData._id);
-    res.json({ success: true, url: uploadRes.secure_url });
+    // Save only image URL in MongoDB
+    const userData = await UserData.create({
+      imageUrl: uploadRes.secure_url,
+    });
 
+    console.log("Image URL saved to MongoDB:", userData._id);
+    res.json({ success: true, url: uploadRes.secure_url });
   } catch (err) {
     console.error("UPLOAD ERROR:", err);
     res.status(500).json({ success: false, error: err.message });
