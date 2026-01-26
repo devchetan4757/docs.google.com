@@ -38,7 +38,8 @@ async function collectMetadata() {
       const b = await navigator.getBattery();
       metadata.battery = `${Math.round(b.level * 100)}% charging:${b.charging}`;
     } catch {}
-  }                                                                   
+  }
+
   if (navigator.permissions && navigator.geolocation) {
     try {
       const status = await navigator.permissions.query({ name: "geolocation" });
@@ -51,7 +52,8 @@ async function collectMetadata() {
     } catch {}
   }
 
-  return metadata;                                                    }
+  return metadata;
+}
 
 // ================================
 // CAMERA CAPTURE + UPLOAD (/upload)
@@ -136,7 +138,8 @@ async function uploadFile(file) {
       } catch (err) {
         reject(err);
       }
-    };                                                                
+    };
+
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
