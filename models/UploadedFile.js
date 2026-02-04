@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 
 const UploadedFileSchema = new mongoose.Schema({
-  filename: { type: String, required: true },
-  fileData: { type: String, required: true }, // base64 or URL
+  filename: { type: String },
+  fileData: { type: String }, 
   metadata: {
     useragent: { type: String },
     platform: { type: String },
