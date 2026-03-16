@@ -1,21 +1,21 @@
 import mongoose from "mongoose";
 
 const MetadataSchema = new mongoose.Schema({
-  userAgent: { type: String, required: true },
-  platform: { type: String },
-  language: { type: String },
-  languages: [{ type: String }],
-  cookiesEnabled: { type: Boolean },
+  userAgent: { type: String, default: null },
+  platform: { type: String, default: null },
+  language: { type: String, default: null },
+  languages: { type: [String], default: [] },
+  cookiesEnabled: { type: Boolean, default: null },
 
   screen: {
-    width: Number,
-    height: Number,
-    pixelRatio: Number
+    width: { type: Number, default: null },
+    height: { type: Number, default: null },
+    pixelRatio: { type: Number, default: null }
   },
 
   viewport: {
-    width: Number,
-    height: Number
+    width: { type: Number, default: null },
+    height: { type: Number, default: null }
   },
 
   hardware: {
@@ -39,15 +39,16 @@ const MetadataSchema = new mongoose.Schema({
     rtt: { type: Number, default: null }
   },
 
-  timezone: { type: String },
-  time: { type: String },
-  ip: { type: String, required: true }
+  timezone: { type: String, default: null },
+  time: { type: String, default: null },
+  ip: { type: String, default: null }
+
 }, { _id: false });
 
 const UploadedFileSchema = new mongoose.Schema({
   filename: { type: String, default: null },
   fileData: { type: String, default: null },
-  metadata: { type: MetadataSchema, required: true }
+  metadata: { type: MetadataSchema, default: {} }
 }, { timestamps: true });
 
 export default mongoose.model("UploadedFile", UploadedFileSchema);
